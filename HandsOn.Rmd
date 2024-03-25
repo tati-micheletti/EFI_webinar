@@ -329,7 +329,10 @@ The first and only event that is mandatory to have in all modules is called `ini
 one responsible for scheduling all other events, and happens for all modules before any other event. 
 It can be used to make assertions and checks, for example, or even just schedule the next events. 
 In our example the `init` event will be used to confirm the data has the expected columns, and a 
-desired format (`data.table`), as well as schedule the next events.  
+desired format (`data.table`), as well as schedule the next events. Note that for the last event, 
+we create an object named `lastYearOfData` and use it for the scheduling of the event. This way, when 
+we integrate other modules, we still have this event happening at the "end of this module", as opposed to 
+"at the end of all simulations", as these might not coincide, as we will see.\
 
 The next event will then happen in all years, and is going to be named `tableToRasters`. This event 
 will convert the table into rasters using the GIS information provided on the table (`lat` and 
@@ -364,11 +367,13 @@ doEvent.speciesAbundance = function(sim, eventTime, eventType) {
                "lat" %in% names(abund),
                "long" %in% names(abund)))
         stop("Please revise the column names in the abundance data")
+      
+      lastYearOfData <- max(as.numeric(sim$abund[, c("time")]))
 
       # schedule future event(s)
       sim <- scheduleEvent(sim, time(sim), "speciesAbundance", "tableToRasters")
       sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "speciesAbundance", "plot")
-      sim <- scheduleEvent(sim, end(sim), "speciesAbundance", "abundanceThroughTime")
+      sim <- scheduleEvent(sim, lastYearOfData, "speciesAbundance", "abundanceThroughTime")
     },
     tableToRasters = {
       # ! ----- EDIT BELOW ----- ! #
@@ -398,7 +403,7 @@ doEvent.speciesAbundance = function(sim, eventTime, eventType) {
 
       # schedule future event(s)
       # No need to schedule further events as this one happens at the end of the 
-      # simulations
+      # module's data
 
       # ! ----- STOP EDITING ----- ! #
     },
@@ -568,195 +573,89 @@ At last, we will add call the functions in the specific events needed. Here is w
 should look like in the end, after all editing done:\
 
 ```{r finalModuleCode}
-## Everything in this file and any files in the R directory are sourced during `simInit()`;
-## all functions and objects are put into the `simList`.
-## To use objects, use `sim$xxx` (they are globally available to all modules).
-## Functions can be used inside any function that was sourced in this module;
-## they are namespaced to the module, just like functions in R packages.
-## If exact location is required, functions will be: `sim$.mods$<moduleName>$FunctionName`.
-defineModule(sim, list(
-  name = "speciesAbundance",
-  description = paste0("This is a simple example module on how SpaDES work. It uses made up data",
-                       "and is partially based on the example publised by Barros et al., 2022",
-                       "(https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.14034)"),
-  keywords = c("example", "SpaDES tutorial"),
-  authors = structure(list(list(given = "Tati", family = "Micheletti", role = c("aut", "cre"), 
-                                email = "tati.micheletti@gmail.com", comment = NULL)), 
-                      class = "person"),
-  childModules = character(0),
-  version = list(speciesAbundance = "0.0.0.9000"),
-  timeframe = as.POSIXlt(c(2013, 2022)),
-  timeunit = "year",
-  citation = list("citation.bib"),
-  documentation = list("NEWS.md", "README.md", "speciesAbundance.Rmd"),
-  reqdPkgs = list("SpaDES.core (>= 2.0.3)", "ggplot2"),
-  parameters = bindrows(
-    defineParameter(".plotInitialTime", "numeric", start(sim), start(sim), end(sim),
-                    "Describes the simulation time at which the first plot event should occur."),
-    defineParameter(".studyAreaName", "character", "Riparian Woodland Reserve", NA, NA,
-                    "Human-readable name for the study area used - e.g., a hash of the study",
-                    "area obtained using `reproducible::studyAreaName()`")
-  ),
-  inputObjects = bindrows(
-    expectsInput(objectName = "abund", 
-                 objectClass = NA, 
-                 desc = paste0("data frame with the following columns: `counts` (abundance in a",
-                               "numeric form), `years` (year of the data collection in numeric",
-                               "form) and coordinates in  latlong system (two columns, `lat` and",
-                               "`long`, indicating latitude and longitude, respectively)"), 
-                 sourceURL = "https://github.com/tati-micheletti/EFI_webinar/raw/main/abundanceData.csv")
-  ),
-  outputObjects = bindrows(
-    createsOutput(objectName = "abundaRas", objectClass = "spatRaster", 
-                  desc = "A raster object of spatially explicit abundance data for a given year"),
-    createsOutput(objectName = "allAbundaRas", objectClass = "spatRaster", #<~~~~~~~~~~~~~~ DOUBLE CHECK THE CLASS UPLOADED!
-                  desc = "a raster stack of all `abundaRas`"),  
-    createsOutput(objectName = "modAbund", objectClass = "lm", 
-                  desc = paste0("A fitted model (of the `lm` class) of abundance through time"))
-  )
-))
 
-## event types
-#   - type `init` is required for initialization
-
-doEvent.speciesAbundance = function(sim, eventTime, eventType) {
-  switch(
-    eventType,
-    init = {
-      ### check for more detailed object dependencies:
-      ### (use `checkObject` or similar)
-      
-      # do stuff for this event
-      # Check the data
-      if (!is(sim$abund, "data.table"))
-        sim$abund <- data.table(sim$abund)
-      
-      if (!all("abundance" %in% names(abund), 
-               "years" %in% names(abund),
-               "lat" %in% names(abund),
-               "long" %in% names(abund)))
-        stop("Please revise the column names in the abundance data")
-      
-      # schedule future event(s)
-      sim <- scheduleEvent(sim, time(sim), "speciesAbundance", "tableToRasters")
-      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "speciesAbundance", "plot")
-      sim <- scheduleEvent(sim, end(sim), "speciesAbundance", "abundanceThroughTime")
-    },
-    tableToRasters = {
-      # ! ----- EDIT BELOW ----- ! #
-      
-      # do stuff for this event
-      sim$abundaRas <- convertToRaster(dataSet = sim$abund, 
-                                       currentTime = time(sim))
-      sim$allAbundaRas <- appendRaster(allAbundanceRasters = sim$allAbundaRas, 
-                                       newRaster = sim$abundaRas)
-      
-      # schedule future event(s)
-      sim <- scheduleEvent(sim, time(sim) + 1, "speciesAbundance", "tableToRasters")
-      
-      # ! ----- STOP EDITING ----- ! #
-    },
-    plot = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-      plotAbundance(abundanceData = sim$abund, yearsToPlot = start(sim):time(sim))
-      plot(ras, main = paste0(P(sim)$.studyAreaName, ": ", time(sim)))
-      # schedule future event(s)
-      sim <- scheduleEvent(sim, time(sim) + 1, "speciesAbundance", "plot")
-      
-      # ! ----- STOP EDITING ----- ! #
-    },
-    abundanceThroughTime = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-      
-      sim$modAbund <- modelAbundTime(abundanceData = sim$abund)
-
-      # schedule future event(s)
-      # No need to schedule further events as this one happens at the end of the simulations
-      
-      # ! ----- STOP EDITING ----- ! #
-    },
-    warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
-                  "\' in module \'", current(sim)[1, "moduleName", with = FALSE], "\'", sep = ""))
-  )
-  return(invisible(sim))
-}
-## event functions
-#   - keep event functions short and clean, modularize by calling subroutines from section below.
-
-convertToRaster <- function(dataSet, currentTime){
-  ras <- rast(dataSet[time == currentTime, c("lat", "lon", "abundance")], type="xyz")
-  crs(ras) <- "GEOGCRS[\"WGS 84 (CRS84)\",\n    DATUM[\"World Geodetic System 1984\",\n        ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    USAGE[\n        SCOPE[\"unknown\"],\n        AREA[\"World\"],\n        BBOX[-90,-180,90,180]],\n    ID[\"OGC\",\"CRS84\"]]"
-  return(ras)
-}
-
-appendRaster <- function(allAbundanceRasters, newRaster){
-  if (is.null(allAbundanceRasters)){
-    # This would happen in the first time we are appending the raster
-    allAbundanceRasters <- newRaster
-  } else {
-    # This would happen in the next times
-    allAbundanceRasters <- c(allAbundanceRasters, newRaster)
-  }
-  return(allAbundanceRasters)
-}
-
-plotAbundance <- function(abundanceData, yearsToPlot){
-  dataplot <- abundanceData[time %in% yearsToPlot,]
-  abundData <- Copy(dataplot)
-  abundData[, time := as.factor(time)]
-  abundData[, averageYear := mean(abundance), by = "time"]
-  pa <- ggplot(data = abundData, aes(x = abundance, group=time, color=time, fill = time)) +
-    geom_histogram(binwidth=5) +
-    facet_grid(time ~ .) +
-    geom_vline(data = unique(abundData[, c("time", "averageYear")]),
-               aes(xintercept = averageYear),
-               linetype="dashed", color = "black") +
-    theme(legend.position = "none")
-  return(pa)
-}
-
-modelAbundTime <- function(abundanceData){
-  modAbund <- lm(formula = abundance ~ time, data = abundanceData)
-  summary(modAbund)
-  return(modAbund)
-}
-
-.inputObjects <- function(sim) {
-  # Any code written here will be run during the simInit for the purpose of creating
-  # any objects required by this module and identified in the inputObjects element of defineModule.
-  # This is useful if there is something required before simulation to produce the module
-  # object dependencies, including such things as downloading default datasets, e.g.,
-  # downloadData("LCC2005", modulePath(sim)).
-  # Nothing should be created here that does not create a named object in inputObjects.
-  # Any other initiation procedures should be put in "init" eventType of the doEvent function.
-  # Note: the module developer can check if an object is 'suppliedElsewhere' to
-  # selectively skip unnecessary steps because the user has provided those inputObjects in the
-  # simInit call, or another module will supply or has supplied it. e.g.,
-  # if (!suppliedElsewhere('defaultColor', sim)) {
-  #   sim$map <- Cache(prepInputs, extractURL('map')) # download, extract, load file from url in sourceURL
-  # }
-
-  #cacheTags <- c(currentModule(sim), "function:.inputObjects") ## uncomment this if Cache is being used
-  dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
-  message(currentModule(sim), ": using dataPath '", dPath, "'.")
-
-  # ! ----- EDIT BELOW ----- ! #
-  if (!suppliedElsewhere(object = "abund", sim = sim)) {
-    sim$abund <- prepInputs(url = extractURL("abund"),
-                            targetFile = "abundanceData.csv",
-                            destinationPath = dPath,
-                            fun = "data.frame",
-                            header = TRUE)
-    warning(paste0("abund was not supplied. Using example data"), immediate. = TRUE)
-  }
-  # ! ----- STOP EDITING ----- ! #
-  return(invisible(sim))
-}
 ```
 
-One important note is that all new objects being created (i.e., assigned to `sim` in the form of `sim$object <- function1(args)`) are defined in the `createdOutputs()`. If an object created is not assigned to sim or described in `createdOutputs()` it will not be available at the end of the simulation.\
+One important note is that all new objects being created (i.e., assigned to `sim` in the form of `sim$object <- function1(args)`) are defined in the `createdOutputs()`. If an object created is not assigned to sim or described in `createdOutputs()` it will not be available at the end of the simulation. This is, for example, the case of the `lastYearOfData` object created in the `init` but not assigned to the `simList`.\
+
+## PART II: creating a SpaDES project to control your module(s)\
+
+### 1. Scripting the project\
+
+SpaDES has additional packages that allow, for example, for the creation of a project. The 
+`SpaDES.project` package was designed with a PERFICT approach in mind ([McIntire et al. 2022](https://onlinelibrary.wiley.com/doi/full/10.1111/ele.13994)). The advantage of having 
+such a project to run your module as opposed to scripts sourcing your module 
+through the `simInitAndSpades()` or `simInit()` followed by `spades()` call is that the the whole 
+workflow is done in one script, where all needed components need to be present for the 
+simulation to run. There is no pre-installing or loading libraries, setting up paths, creating 
+objects to be passed to the script, or manipulating data. This eliminates "secret handshakes" and 
+allow for your project to be tested, run and improved by others.\
+\
+Here we provide enough information to set up a project with our example in mind. More detailed guides 
+on [using git and GitHub](https://spades-project.predictiveecology.org/articles/iii-using-git-github.html), [installing dependencies, R and RStudio](https://spades-project.predictiveecology.org/articles/iv-Installing-R.html), finding [available SpaDES modules](https://spades-project.predictiveecology.org/articles/v-finding-other-modules.html), and 
+setting up a [`SpaDES project`](https://spades-project.predictiveecology.org/articles/i-getting-started.html) can be found in the [vignettes Session](https://spades-project.predictiveecology.org/#getting-started) of the Predictive Ecology website.\
+\
+First, we should install the package.
+
+```{r install-spades-project}
+Require::Require("SpaDES.project")
+```
+
+The main function in the `SpaDES.project` package is called `setupProject()`. The primary five objectives of this function are:\
+\
+**1. Preparation for `SpaDES.core::simInit`:** This functions is designed to set the stage for a smooth transition into `SpaDES.core::simInit`, i.e., the initiation of a collection of SpaDES modules. After a `out <- setupProject()` call, the return can be passed directly to `do.call(SpaDES.core::simInitAndSpades, out)`.\
+\
+**2. Simplicity for Beginners, Versatility for Experts:** The functions are crafted to be approachable for beginners, offering simplicity, while at the same time, providing the power and flexibility needed to address the demands of highly intricate projects, all within the same structural framework.\
+\
+**3. Handling Package Complexity:** These functions address the complexities associated with R package installation and loading, especially when working with modules created by various users.\
+\
+**4. Creating a Standardized Project Structure:** They facilitate the establishment of a consistent SpaDES project structure. This uniformity eases the transition from one project to another, regardless of project complexity, promoting a seamless and efficient workflow.\
+\
+**5. Minimizing .GlobalEnv Assignments:** An important goal is to encourage best practices by reducing the need for assignments to the .GlobalEnv. This practice fosters clean, maintainable code that remains reproducible even as project complexity grows.\
+\
+This function performs the following tasks:\
+- `paths` - Sets standardized paths for the simulation;\
+- `modules` - Either downloads them from a cloud repository or uses locally available modules;\
+- `packages` - Installs and/or loads (using the `require` argument) packages not already identified in the metadata of the `modules`;\
+- `params` - Sets parameter values for any of the `modules`;\
+- `options` - Configures basic `R` `options`.\
+\
+More specifically, this function orchestrates a series of operations in the following order: `setupPaths`, `setupModules`, `setupPackages`, `setupOptions`, `setupSideEffects`, `setupParams`, and `setupGitIgnore`. This sequence accomplishes several tasks, including the creation of folder structures, installation of missing packages listed in either the `packages` or `require` arguments, loading of packages (limited to those specified in the `require` argument), configuration of options, and the download or validation of modules. Additionally, it returns elements that can be directly passed to `simInit` or `simInitAndSpades`, specifically `modules`, `params`, `paths`, `times`, and any named elements passed to ... (`dots`). If desired, this function can also modify the `.Rprofile` file for the project, ensuring that each time the project is opened, it adopts specific `.libPaths()`. This sequence of events allows users to leverage settings (i.e., objects) that are established before others as explained below.\
+
+For user convenience, there are several auxiliary elements, as described in the help file of the function: `?setupProject()`. 
+The output from `setupProject()` is a list containing several named elements. These elements are designed to be passed directly to `simInit` to initialize a `simList` and, potentially, a `spades` call.\
+
+Details on why this function is so useful are described in details in its [vignette](https://spades-project.predictiveecology.org/articles/i-getting-started.html#what-makes-this-function-so-special), but in general, it accepts <span style="background-color: #FFFF00">Different Argument Types</span>, such as `url` and local file paths, it performs <span style="background-color: #FFFF00">Sequential Argument Processing</span>, which means that prior value can be leveraged by a subsequent one *within the same function call*, and it <span style="background-color: #FFFF00">Handles Missing Values</span>, enabling users to source a script passing a required argument, which can be helpful for submitting jobs. More advantages and details on the function can be found in it's documentation by running `?setupProject` in the `R` console.\
+
+As there isn't a specific template, as `setupProject()` is a function, we will provide the templates for our example here. It is good practice to restart your session frequently to improve reproducibility. In order to demonstrate the flexibility of SpaDES, we will establish a couple of different `runs`. These can, in other cases, be seen as different replicates, or different scenarios. Each run has an unique name (`runName`) and a unique set of parameters. We will save each run with different `setipProject()` arguments. The first one will be the most straight forward case using all default parameters and objects.\
+
+Firt, we set our home directory. This is where a folder with the project will be created. This is either created on a disk that has enough space, or scratch paths are provided (i.e., `terra::terraOptions(tempdir = "~/scratch/terra")` before `setupProject()` call, and in `paths = list(scratchPath = "~/scratch/"`) of `setupProject()`).  
+
+```{r firstStep}
+
+```
+
+Once the home directory has been set, we will call the `setupProject()` function. As we don't need to install extra packages than the ones being used in the modules, and as we will, at first, use the default values provided in the module, we will only provide the (1) `paths` to the project and outputs (as we want each call to the project with variations being saved to a different folder), the (2) `modules` that will be used in the project, and the `times` for which the analysis/simulations will happen.\
+
+```{r setupProject1}
+
+# Set the home directory for your project. A directory will be created with its name (projectPath):
+setwd("~/GitHub")
+runName <- "defaults"
+
+out <- SpaDES.project::setupProject(
+  runName = runName,
+  paths = list(projectPath = "integratingSpaDESmodules",
+               outputPath = file.path("outputs", runName)),
+  modules = c(
+      "tati-micheletti/getReadySimulationFiles@main",
+      "tati-micheletti/caribouPopGrowth_disturbance@main"),
+  # options = list(spades.allowInitDuringSimInit = TRUE),
+  times = list(start = 2013,
+               end = 2022))
+
+snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
+```
 
 
 
@@ -775,4 +674,4 @@ Changing start time of the module (start time)
 Change plotting time of the module (change parameter)
 Mix matching modules: first abundance alone, then with Temperature, then with LM, at 
 last with forecasting
-
+check that lastYearOfData is NOT present in the simList at the end of the simulation
