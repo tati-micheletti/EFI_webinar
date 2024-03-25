@@ -2,7 +2,10 @@
 title: "Creating and integrating simple models with SpaDES’ help"
 author: "Tati Micheletti"
 date: "2024-03-21"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -11,22 +14,22 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 
 ## Introduction 
 
-This guide provides a simple and yet compreensive guide to creating and then integrating SpaDES 
-compatible modules (hereby "SpaDES modules"). It is divided in two parts. PART I focuses on the  
-creation of a new SpaDES module from scratch, while PART II focuses on developing a new project and  
+This guide provides a simple and yet comprehensive guide to creating and then integrating SpaDES 
+compatible modules (hereby "SpaDES modules"). It is divided in two parts. PART I focuses on the 
+creation of a new SpaDES module from scratch, while PART II focuses on developing a new project and 
 integrating the module created in PART I with two other SpaDES compatible modules hosted online.  
 
 ## PART I: creating a SpaDES compatible module from scratch  
 
-### Planning the New Module  
+### 1. Planning the New Module  
 
 The first thing we will do is step away from `R` and list all needed `inputs`, desired `outputs` and 
 `parameters` (arguments a user can control) the module will need to run. This will depend on the 
 objective you have in mind. In our example, we want to:   
-1. Download abundance data (with locations and year of counts)
-2. For each year, we want to convert the table into a raster file 
-3. We want to check the distribution of the values and rasters for each year
-4. In the end, we ant to build a simple linear model to check if and how the abundance is changing though time  
+1. Download abundance data (with locations and year of counts);   
+2. For each year, we want to convert the table into a raster file;   
+3. We want to check the distribution of the values and rasters for each year;  
+4. In the end, we ant to build a simple linear model to check if and how the abundance is changing though time.  
 
 For that, we will need as an `input` the dataset with counts, locations (in lat/long format) and year 
 of survey (`abund`). We also want to `output` two objects, a raster stack of abundance through time, with one raster 
@@ -36,18 +39,20 @@ are mostly related to plotting: the name of the study area (`.studyAreaName`), a
 plotting (`.plotInitialTime`).    
 
 Once we have out list of `inputs`, `outputs` and `parameters`, we should hash out how our module will 
-work. This means, drawing a conceptual model of (1) which `events` will happen in our analysis or simulation,  
+work. This means, drawing a conceptual model of (1) which `events` will happen in our analysis or simulation, 
 (2) in which order will they happen, (3) how are `inputs`, `outputs` and `parameters` related to these 
 events, and among themselves. This is extremely helpful in the early days of using SpaDES, while you 
-familiarize yourself with the template. Here is what I envisioned for our module:  
+familiarize yourself with the template. Figure 1 details what is envisioned for this module:  
 
-[Figure 1: Module scheme presenting all important events detailing what happens to the original data.](./scheme.png)  
+![Module scheme presenting all important events detailing what happens to the original data.](C:\Users\Tati\Documents\GitHub\EFI_webinar\scheme.png)  
+
+\newpage
 
 Once this has been done, it is time to start working on the new module.  
 
-### Installing and Loading Libraries  
+### 2. Installing and Loading Libraries  
 
-We will start by installing `Require`. `Require` is a package which tries to resolve all possible 
+We will start by installing `Require`, which is a package which tries to resolve all possible 
 package dependencies and versioning to ensure reproducibility. This package is used in the background
  by SpaDES modules, but can also be used as a general approach to installing and loading libraries 
  from both CRAN and github. We first test if `Require` has already been installed, and if not, we 
@@ -66,20 +71,21 @@ After loading `Require`, we install and/or load SpaDES.
 Require("SpaDES")
 ```
 
-### Creating a New Module  
+### 3. Creating a New Module  
 
 Once SpaDES has been loaded, we use the function `newModule()` to create a new module. The function 
 takes two arguments: `name`, the name of the module, and `path`, which is the directory where you  
 want to create this new module. The new module is a simply a folder containing the following files:  
-- **Templated Module’s Manual:** `module.Rmd`  
-- **Functions’ folder, where functions may be saved (alternatively, they can also be stored in the module's R file):** `R/`  
-- **Tests folder, where the unit tests are hosted:** `tests/`  
-- **Data folder, where potential data for the module may be saved (alternatively, data can also be saved in a common inputs folder on the project level, if it may be shared across models):** `data/`  
-- **README, where basic information about the module can be added:** `README.md`  
-- **NEWS, where improvements from previous module versions can be communicated:** `NEWS.md`  
-- **Citation, where you define how your module should be cited:** `citation.bib`  
-- **LICENSE, where you establish which type of license your module will have:** `LICENSE.md`  
-- **Templated script constituted of 3 Main Parts (plus potential functions), which is the module itself:** `module.Rmd`  
+
+- **Templated Module’s Manual**: where the module's usage is detailed - `module.Rmd`.  
+- **Functions’ folder**: where functions may be saved (alternatively, they can also be stored in the module's R file) - `R/`.  
+- **Tests folder**: where the unit tests are hosted - `tests/`.  
+- **Data folder**: where potential data for the module may be saved (alternatively, data can also be saved in a common inputs folder on the project level, if it may be shared across models) - `data/`.   
+- **README**: where basic information about the module can be added - `README.md`.    
+- **NEWS**: where improvements from previous module versions can be communicated - `NEWS.md`.    
+- **Citation**: where you define how your module should be cited - `citation.bib`.    
+- **LICENSE**: where you establish which type of license your module will have - `LICENSE.md`.    
+- **Module**: Templated script constituted of 3 Main Parts (plus potential functions) - `module.Rmd`.    
 
 ```{r newModule}
 newModule(name = "speciesAbundance", path = "~/EFI")
@@ -101,54 +107,57 @@ Using RStudio; may need to open manually e.g., with file.edit or file.show
 file.edit('C:/Users/Tati/Documents/EFI/speciesAbundance/speciesAbundance.Rmd')
 ```
 
-### Editing the New Module  
+### 4. Editing the New Module  
 
 Now we can start working on the new module's file. We will skip the module documentation (manual, 
 citation, readme and license) and tests due to time constraints, but you should never skip these 
 when developing your modules, so they can be used by others.  
 
-#### Descriptive Metadata
-
+#### 4.1. Descriptive Metadata\
+\
 We will start by filling out the descriptive metadata for our module. This part of the module is 
-composed of the following parts:
-- **name**: Module's name, which was prefilled when the module was created.
+composed of the following parts:  
+
+- **name**: Module's name, which was prefilled when the module was created.  
 - **description**: Module's description, where details about the module can be found, such as why the 
 module was created and its basic working mechanism. Almost as an abstract of the modules' usefulness. 
 If you want to avoid long lines, you can wrap the description with the function `paste0()`, as seen below.
 - **keywords**: Keywords for helping the module getting properly indexed. If more than one keyword is 
-added, it is important to remember to concatenate all words using a `c("keyword 1", "keyword 2", "keyword 3")`.
+added, it is important to remember to concatenate all words using a `c("keyword 1", "keyword 2", "keyword 3")`.  
 - **authors**: Add information on author(s), including contact. This is the best way to ensure someone 
-can contact you if they want to discuss any specific infoirmation about your module.
+can contact you if they want to discuss any specific infoirmation about your module.  
 - **childModules**: This is used when the current module represents a parent (i.e., grouping) module. 
 It's a mechanism to simplify getting a group of modules which are expected to work together. We won't 
-be using it in this simple example. Although in the descriptive metadata part, this is also functional.
+be using it in this simple example. Although in the descriptive metadata part, this is also functional.  
 - **version**: We follow a software development versioning system for the modules, combining the Numeric
 status and the Numeric 90+ scheme. This system has 4 codes, separated by `.`. The first number indicates 
 the major structureal changes to the module, the second indicates minor changes, but generally in more 
 than one place, the third indicates bug fixes, and the last indicates punctual enhancements or bugfixes. 
 With such system, we hope modules will be continuously updated and the exact version used for 
-publications can be backtraced.
-- **timeframe**: Indicates the original or exemplified time frame of the module (i.e., from 2013 to 2022)
+publications can be backtraced.  
+- **timeframe**: Indicates the original or exemplified time frame of the module (i.e., from 2013 to 2022).  
 - **timeunit**: This is an important information and also functional when modules have divergent time 
 units. SpaDES converts all times internally to seconds in order to allow the integration of modules 
-happening at different time scales.
+happening at different time scales.  
 - **citation**: Indicates the file where the citation for the module can be found. The citation 
-template format is [BibTeX](https://www.bibtex.org/).
+template format is [BibTeX](https://www.bibtex.org/).  
 - **documentation**: Indicates all files that are related to the module in terms of documentation. If, 
 for example, the user decides to create a vignette for the module apart from the manual, it can be 
-added here.
+added here.  
 
 Once the descriptive metadata has been updated for our example module `speciesAbundance`, it should 
-look similar to this:
+look similar to this:  
 
 ```{r descriptiveMetadata}
   name = "speciesAbundance",
-  description = paste0("This is a simple example module on how SpaDES work. It uses made up data",
-                       "and is partially based on the example publised by Barros et al., 2022",
-                       "(https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.14034)"),
+  description = paste0("This is a simple example module on how SpaDES work. It uses made",
+                       " up data and is partially based on the example publised by ",
+                       "Barros et al., 2022 (DOI: 10.1111/2041-210X.14034)"),
   keywords = c("example", "SpaDES tutorial"),
-  authors = structure(list(list(given = "Tati", family = "Micheletti", role = c("aut", "cre"), 
-                                email = "tati.micheletti@gmail.com", comment = NULL)), 
+  authors = structure(list(list(given = "Tati", family = "Micheletti", 
+                                role = c("aut", "cre"), 
+                                email = "tati.micheletti@gmail.com", 
+                                comment = NULL)), 
                       class = "person"),
   childModules = character(0),
   version = list(speciesAbundance = "0.0.0.9000"),
@@ -158,8 +167,8 @@ look similar to this:
   documentation = list("NEWS.md", "README.md", "speciesAbundance.Rmd"),
 ```
 
-#### Functional Metadata  
-
+#### 4.2. Functional Metadata\
+\
 An important part of a SpaDES module is the functional metadata. This is a hybrid approach between 
 human-readable information and code used by SpaDES to schedule the events happening across modules. 
 This part of the module is composed of the following parts:
@@ -213,27 +222,34 @@ look similar to this (note that the parameters not used were removed just to imp
 ```{r functionalMetadata}
   parameters = bindrows(
     defineParameter(".plotInitialTime", "numeric", start(sim), start(sim), end(sim),
-                    "Describes the simulation time at which the first plot event should occur."),
+                    paste0("Describes the simulation time at which the first plot event",
+                           "should occur.")),
     defineParameter(".studyAreaName", "character", "Riparian Woodland Reserve", NA, NA,
-                    "Human-readable name for the study area used - e.g., a hash of the study",
-                          "area obtained using `reproducible::studyAreaName()`")
+                    paste0("Human-readable name for the study area used - e.g., a hash ",
+                           "of the study area obtained using ",
+                           "`reproducible::studyAreaName()`"))
   ),
   inputObjects = bindrows(
     expectsInput(objectName = "abund", 
                  objectClass = NA, 
-                 desc = paste0("data frame with the following columns: `counts` (abundance in a",
-                               "numeric form), `years` (year of the data collection in numeric",
-                               "form) and coordinates in  latlong system (two columns, `lat` and",
-                               "`long`, indicating latitude and longitude, respectively)"), 
-                 sourceURL = "") #<~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FILL IT UP WHEN DATA HAS BEEN UPLOADED!
+                 desc = paste0("data frame with the following columns: `counts` ",
+                               "(abundance in a numeric form), `years` (year of the data",
+                               " collection in numeric form) and coordinates in  latlong",
+                               " system (two columns, `lat` and `long`, indicating ",
+                               "latitude and longitude, respectively)"), 
+                 sourceURL = "") #<~~~~~~~~~~~~~~~ FILL IT UP WHEN DATA HAS BEEN UPLOADED!
   ),
   outputObjects = bindrows(
-    createsOutput(objectName = "abundaRas", objectClass = "spatRaster", 
-                  desc = "A raster object of spatially explicit abundance data for a given year"),
-    createsOutput(objectName = "allAbundaRas", objectClass = "spatRaster", #<~~~~~~~~~~~~~~ DOUBLE CHECK THE CLASS UPLOADED!
+    createsOutput(objectName = "abundaRas", 
+                  objectClass = "spatRaster", 
+                  desc = paste0("A raster object of spatially explicit abundance data ",
+                                "for a given year")),
+    createsOutput(objectName = "allAbundaRas", 
+                  objectClass = "spatRaster", #<~~~~~~~ DOUBLE CHECK THE CLASS UPLOADED!
                   desc = "a raster stack of all `abundaRas`"),  
     createsOutput(objectName = "modAbund", objectClass = "lm", 
-                  desc = paste0("A fitted model (of the `lm` class) of abundance through time"))
+                  desc = paste0("A fitted model (of the `lm` class) of abundance through",
+                                "time"))
   )
 ```
 
@@ -246,8 +262,8 @@ the simulation. They are extremely handy to use during coding of the module as w
 below. The argument of these functions is `sim`, which is a special class of list-type object (i.e., 
 `simList`) which we will detail below. 
 
-#### Adding default values to `.inputObjects`  
-
+#### 4.3. Adding default values to `.inputObjects`\
+\
 As mentioned, an important step to help modules be used is to provide default objects to allow for 
 a potential user to test the module. This can be done inside the module structure itself, under the 
 function `.inputObjects()` (located at the end of the template). As SpaDES is modular and an object 
@@ -291,22 +307,24 @@ function to be used throughout due to its flexibility.
 One last important detail which can be noted here: the assignment of `abund` to `sim`. We will now 
 discuss the meaning of `simList`, a very special form of list.  
 
-##### The heart of SpaDES: the `simList`    
-
+##### 4.3.1. The heart of SpaDES: the `simList`\
+\
 The simList (named `sim` in the templates) is a list containing the minimum components of a SpaDES 
 simulation. It is created by initializing a simulation using `simInit()` and returned when running a 
 simulation via a `spades()` call. This list contains all information needed for organizing the events 
 (described below), and contains all parameters, inputs and outputs created. Through time and across 
 modules, only objects created and stored in this special list are available for the simulations.  
 
-#### Events  
-
+#### 4.4. Events\
+\
 The events define what will be done by the module (Figure 1). Each module may contain an arbitrary number of 
-events, and each event consists of two parts:  
-(1) *what* to do right now: we generally execute a function returning an object that is appended to `sim`;   
+events, and each event consists of two parts:\
+\
+(1) *what* to do right now: we generally execute a function returning an object that is appended to `sim`;\
+\
 (2) *when* to do it again: we generally schedule the same event in the event itself using the function 
-`scheduleEvent()`.  
-
+`scheduleEvent()`.\
+\
 The first and only event that is mandatory to have in all modules is called `init`. This event is the 
 one responsible for scheduling all other events, and happens for all modules before any other event. 
 It can be used to make assertions and checks, for example, or even just schedule the next events. 
@@ -318,7 +336,7 @@ will convert the table into rasters using the GIS information provided on the ta
 `long` columns). In the same event, the raster recently created will be appended to the already existing 
 ones, incrementing the raster stack that will hold the abundance rasters of all years.  
 
-Followed by this, we will plot both the original data from the first year up to the current year 
+Followed by this, we will `plot` both the original data from the first year up to the current year 
 (histogram with its distribution) and the newly created raster, using the parameter `.studyAreaName` 
 for the plot title. This plotting function will be dependent on the parameter `.plotInitialTime`, 
 which will used to schedule the start of plotting events.  
@@ -379,12 +397,14 @@ doEvent.speciesAbundance = function(sim, eventTime, eventType) {
       # you can define your own methods below this `doEvent` function
 
       # schedule future event(s)
-      # No need to schedule further events as this one happens at the end of the simulations
+      # No need to schedule further events as this one happens at the end of the 
+      # simulations
 
       # ! ----- STOP EDITING ----- ! #
     },
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
-                  "\' in module \'", current(sim)[1, "moduleName", with = FALSE], "\'", sep = ""))
+                  "\' in module \'", current(sim)[1, "moduleName", with = FALSE], "\'", 
+                  sep = ""))
   )
   return(invisible(sim))
 }
@@ -392,17 +412,25 @@ doEvent.speciesAbundance = function(sim, eventTime, eventType) {
 ```
 
 Now that we have filled the `init` event and created and scheduled the other ones, we need to define 
-the functions to do the following tasks that are still missing for each event:  
-**tableToRasters:**  
+the functions to do the following tasks that are still missing for each event:\
+\
+**tableToRasters:**\
+\
 (1) convert the table into rasters (named `abundaRas` as defined in the `createdOutputs()`) using 
-the GIS information provided on the table;  
-(2) append the recently created raster to the full raster stack (named `allAbundaRas`).  
-**plot:**  
-(3) plot the original data from the first year up to the current year (histogram with distribution);  
-(4) plot the newly created raster (`abundaRas`), using the parameter `.studyAreaName` and year for title.  
-**abundanceThroughTime:**  
+the GIS information provided on the table;\
+\
+(2) append the recently created raster to the full raster stack (named `allAbundaRas`)\
+\
+**plot:**\
+\
+(3) plot the original data from the first year up to the current year (histogram with distribution);\
+\
+(4) plot the newly created raster (`abundaRas`), using the parameter `.studyAreaName` and year for title.\
+\
+**abundanceThroughTime:**\
+\
 (5) build a simple linear model using the abundance data (`abund`) to identify any trends in 
-abundance though time.  
+abundance though time.\
 
 Each one of these numbered tasks will be converted into a function. At this point, there are two 
 options: (1) keep all functions in the module's file as the template suggests (see the functions 
@@ -410,41 +438,327 @@ between `doEvent.speciesAbundance` and `.inputObjects`) or (2a) save all functio
 of them separately in the module's `R/` folder, which gets sourced at the beginning of each module run. 
 Although this might be a matter of personal choice, in the case of complex modules, keeping each function 
 in a separate file named after the function in the R folder might prove useful to keep the module's 
-organization, easier to debug and easier for others to read through the module.  
+organization, easier to debug and easier for others to read through the module.\
 
-/!\ IMPORTANT /!\ Avoid using the same names for functions and events. It might get confusing to debug 
-and might in some instances fail.  
+#### 4.5. Event functions\
+\
+<span style="background-color: #FFFF00">**IMPORTANT: **</span> Avoid using the same names 
+for functions and events. It might get confusing to debug and might in some instances fail.\
+\
+We will now create all functions for the module, except for function (4), which we will use a
+pre-existing function from the package `terra`. We will opt, due to the module's simplicity,
+to host the functions below in the same script. However, a good common practice for more 
+complex modules is to store the functions in the `R/` module folder. This helps keeping the 
+main code of the module cleaner and easier to debug and improve. As our `init` event will 
+not need any functions, we will start with the next event, `tableToRasters`:\
+\
+(1) convert the table into rasters (named `abundaRas` as defined in the `createdOutputs()`) using 
+the GIS information provided on the table: `convertToRaster(dataSet, currentTime)`\
+\
+```{r tableToRas1}
+convertToRaster <- function(dataSet, currentTime){
+  ras <- rast(dataSet[time == currentTime, c("lat", "lon", "abundance")], type="xyz")
+  crs(ras) <- "GEOGCRS[\"WGS 84 (CRS84)\",\n    DATUM[\"World Geodetic System 1984\",\n        ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    USAGE[\n        SCOPE[\"unknown\"],\n        AREA[\"World\"],\n        BBOX[-90,-180,90,180]],\n    ID[\"OGC\",\"CRS84\"]]"
+return(ras)
+}
+```
+\
+(2) append the recently created raster to the full raster stack (named `allAbundaRas`):`appendRaster(allAbundanceRasters, newRaster)`\
+\
+```{r tableToRas2}
+appendRaster <- function(allAbundanceRasters, newRaster){
+  if (is.null(allAbundanceRasters)){
+  # This would happen in the first time we are appending the raster
+  allAbundanceRasters <- newRaster
+} else {
+  # This would happen in the next times
+  allAbundanceRasters <- c(allAbundanceRasters, newRaster)
+}
+return(allAbundanceRasters)
+}
+```
+\
+Next, we will move to the event `plot`:\
+\
+(3) plot the original data from the first year up to the current year (histogram with distribution):`plotAbundance(abundanceData, yearsToPlot)`\
+\
+```{r plot1}
+plotAbundance <- function(abundanceData, yearsToPlot){
+  dataplot <- abundanceData[time %in% yearsToPlot,]
+  abundData <- Copy(dataplot)
+  abundData[, time := as.factor(time)]
+  abundData[, averageYear := mean(abundance), by = "time"]
+  pa <- ggplot(data = abundData, aes(x = abundance, group=time, color=time, fill = time)) +
+    geom_histogram(binwidth=5) +
+    facet_grid(time ~ .) +
+    geom_vline(data = unique(abundData[, c("time", "averageYear")]),
+               aes(xintercept = averageYear),
+               linetype="dashed", color = "black") +
+    theme(legend.position = "none")
+  return(pa)
+}
+```
+\
+(4) plot the newly created raster (`abundaRas`), using the parameter `.studyAreaName` and year for title. This function is not going to be built in the module. It is, instead, a function from the package `terra`. It is here written only to show how we will use it in the     `plot` event: `plot(x, main)`\
+\
+```{r plot2}
+plot(ras, main = paste0(P(sim)$.studyAreaName,": ", time(sim)))
+```
+\
+Lastly, we build the last function for the `abundanceThroughTime` event:\
+\
+(5) build a simple linear model using the abundance data (`abund`) to identify any trends in 
+abundance though time: `modelAbundTime(abundanceData)`\
+\
+```{r abundanceThroughTime}
+modelAbundTime <- function(abundanceData){
+  modAbund <- lm(formula = abundance ~ time, data = abundanceData)
+  summary(modAbund)
+  return(modAbund)
+}
+```
+
+Now that we have all functions written, we add them to the `speciesAbundance.R` module file. 
+The functions part of the file should then look like this, after replacing the example functions 
+that come in the template:\
+\
+```{r allfuns}
+convertToRaster <- function(dataSet, currentTime){
+  ras <- rast(dataSet[time == currentTime, c("lat", "lon", "abundance")], type="xyz")
+  crs(ras) <- "GEOGCRS[\"WGS 84 (CRS84)\",\n    DATUM[\"World Geodetic System 1984\",\n        ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    USAGE[\n        SCOPE[\"unknown\"],\n        AREA[\"World\"],\n        BBOX[-90,-180,90,180]],\n    ID[\"OGC\",\"CRS84\"]]"
+  return(ras)
+}
+
+appendRaster <- function(allAbundanceRasters, newRaster){
+  if (is.null(allAbundanceRasters)){
+    # This would happen in the first time we are appending the raster
+    allAbundanceRasters <- newRaster
+  } else {
+    # This would happen in the next times
+    allAbundanceRasters <- c(allAbundanceRasters, newRaster)
+  }
+  return(allAbundanceRasters)
+}
+
+plotAbundance <- function(abundanceData, yearsToPlot){
+  dataplot <- abundanceData[time %in% yearsToPlot,]
+  abundData <- Copy(dataplot)
+  abundData[, time := as.factor(time)]
+  abundData[, averageYear := mean(abundance), by = "time"]
+  pa <- ggplot(data = abundData, aes(x = abundance, group=time, color=time, fill = time)) +
+    geom_histogram(binwidth=5) +
+    facet_grid(time ~ .) +
+    geom_vline(data = unique(abundData[, c("time", "averageYear")]),
+               aes(xintercept = averageYear),
+               linetype="dashed", color = "black") +
+    theme(legend.position = "none")
+  return(pa)
+}
+
+modelAbundTime <- function(abundanceData){
+  modAbund <- lm(formula = abundance ~ time, data = abundanceData)
+  summary(modAbund)
+  return(modAbund)
+}
+```
+
+##### 4.5.1. Completing the Events with the needed functions\
+\
+At last, we will add call the functions in the specific events needed. Here is what the module code 
+should look like in the end, after all editing done:\
+
+```{r finalModuleCode}
+## Everything in this file and any files in the R directory are sourced during `simInit()`;
+## all functions and objects are put into the `simList`.
+## To use objects, use `sim$xxx` (they are globally available to all modules).
+## Functions can be used inside any function that was sourced in this module;
+## they are namespaced to the module, just like functions in R packages.
+## If exact location is required, functions will be: `sim$.mods$<moduleName>$FunctionName`.
+defineModule(sim, list(
+  name = "speciesAbundance",
+  description = paste0("This is a simple example module on how SpaDES work. It uses made up data",
+                       "and is partially based on the example publised by Barros et al., 2022",
+                       "(https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.14034)"),
+  keywords = c("example", "SpaDES tutorial"),
+  authors = structure(list(list(given = "Tati", family = "Micheletti", role = c("aut", "cre"), 
+                                email = "tati.micheletti@gmail.com", comment = NULL)), 
+                      class = "person"),
+  childModules = character(0),
+  version = list(speciesAbundance = "0.0.0.9000"),
+  timeframe = as.POSIXlt(c(2013, 2022)),
+  timeunit = "year",
+  citation = list("citation.bib"),
+  documentation = list("NEWS.md", "README.md", "speciesAbundance.Rmd"),
+  reqdPkgs = list("SpaDES.core (>= 2.0.3)", "ggplot2"),
+  parameters = bindrows(
+    defineParameter(".plotInitialTime", "numeric", start(sim), start(sim), end(sim),
+                    "Describes the simulation time at which the first plot event should occur."),
+    defineParameter(".studyAreaName", "character", "Riparian Woodland Reserve", NA, NA,
+                    "Human-readable name for the study area used - e.g., a hash of the study",
+                    "area obtained using `reproducible::studyAreaName()`")
+  ),
+  inputObjects = bindrows(
+    expectsInput(objectName = "abund", 
+                 objectClass = NA, 
+                 desc = paste0("data frame with the following columns: `counts` (abundance in a",
+                               "numeric form), `years` (year of the data collection in numeric",
+                               "form) and coordinates in  latlong system (two columns, `lat` and",
+                               "`long`, indicating latitude and longitude, respectively)"), 
+                 sourceURL = "") #<~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FILL IT UP WHEN DATA HAS BEEN UPLOADED!
+  ),
+  outputObjects = bindrows(
+    createsOutput(objectName = "abundaRas", objectClass = "spatRaster", 
+                  desc = "A raster object of spatially explicit abundance data for a given year"),
+    createsOutput(objectName = "allAbundaRas", objectClass = "spatRaster", #<~~~~~~~~~~~~~~ DOUBLE CHECK THE CLASS UPLOADED!
+                  desc = "a raster stack of all `abundaRas`"),  
+    createsOutput(objectName = "modAbund", objectClass = "lm", 
+                  desc = paste0("A fitted model (of the `lm` class) of abundance through time"))
+  )
+))
+
+## event types
+#   - type `init` is required for initialization
+
+doEvent.speciesAbundance = function(sim, eventTime, eventType) {
+  switch(
+    eventType,
+    init = {
+      ### check for more detailed object dependencies:
+      ### (use `checkObject` or similar)
+      
+      # do stuff for this event
+      # Check the data
+      if (!is(sim$abund, "data.table"))
+        sim$abund <- data.table(sim$abund)
+      
+      if (!all("abundance" %in% names(abund), 
+               "years" %in% names(abund),
+               "lat" %in% names(abund),
+               "long" %in% names(abund)))
+        stop("Please revise the column names in the abundance data")
+      
+      # schedule future event(s)
+      sim <- scheduleEvent(sim, time(sim), "speciesAbundance", "tableToRasters")
+      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "speciesAbundance", "plot")
+      sim <- scheduleEvent(sim, end(sim), "speciesAbundance", "abundanceThroughTime")
+    },
+    tableToRasters = {
+      # ! ----- EDIT BELOW ----- ! #
+      
+      # do stuff for this event
+      sim$abundaRas <- convertToRaster(dataSet = sim$abund, 
+                                       currentTime = time(sim))
+      sim$allAbundaRas <- appendRaster(allAbundanceRasters = sim$allAbundaRas, 
+                                       newRaster = sim$abundaRas)
+      
+      # schedule future event(s)
+      sim <- scheduleEvent(sim, time(sim) + 1, "speciesAbundance", "tableToRasters")
+      
+      # ! ----- STOP EDITING ----- ! #
+    },
+    plot = {
+      # ! ----- EDIT BELOW ----- ! #
+      # do stuff for this event
+      plotAbundance(abundanceData = sim$abund, yearsToPlot = start(sim):time(sim))
+      plot(ras, main = paste0(P(sim)$.studyAreaName, ": ", time(sim)))
+      # schedule future event(s)
+      sim <- scheduleEvent(sim, time(sim) + 1, "speciesAbundance", "plot")
+      
+      # ! ----- STOP EDITING ----- ! #
+    },
+    abundanceThroughTime = {
+      # ! ----- EDIT BELOW ----- ! #
+      # do stuff for this event
+      
+      sim$modAbund <- modelAbundTime(abundanceData = sim$abund)
+
+      # schedule future event(s)
+      # No need to schedule further events as this one happens at the end of the simulations
+      
+      # ! ----- STOP EDITING ----- ! #
+    },
+    warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
+                  "\' in module \'", current(sim)[1, "moduleName", with = FALSE], "\'", sep = ""))
+  )
+  return(invisible(sim))
+}
+## event functions
+#   - keep event functions short and clean, modularize by calling subroutines from section below.
+
+convertToRaster <- function(dataSet, currentTime){
+  ras <- rast(dataSet[time == currentTime, c("lat", "lon", "abundance")], type="xyz")
+  crs(ras) <- "GEOGCRS[\"WGS 84 (CRS84)\",\n    DATUM[\"World Geodetic System 1984\",\n        ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    USAGE[\n        SCOPE[\"unknown\"],\n        AREA[\"World\"],\n        BBOX[-90,-180,90,180]],\n    ID[\"OGC\",\"CRS84\"]]"
+  return(ras)
+}
+
+appendRaster <- function(allAbundanceRasters, newRaster){
+  if (is.null(allAbundanceRasters)){
+    # This would happen in the first time we are appending the raster
+    allAbundanceRasters <- newRaster
+  } else {
+    # This would happen in the next times
+    allAbundanceRasters <- c(allAbundanceRasters, newRaster)
+  }
+  return(allAbundanceRasters)
+}
+
+plotAbundance <- function(abundanceData, yearsToPlot){
+  dataplot <- abundanceData[time %in% yearsToPlot,]
+  abundData <- Copy(dataplot)
+  abundData[, time := as.factor(time)]
+  abundData[, averageYear := mean(abundance), by = "time"]
+  pa <- ggplot(data = abundData, aes(x = abundance, group=time, color=time, fill = time)) +
+    geom_histogram(binwidth=5) +
+    facet_grid(time ~ .) +
+    geom_vline(data = unique(abundData[, c("time", "averageYear")]),
+               aes(xintercept = averageYear),
+               linetype="dashed", color = "black") +
+    theme(legend.position = "none")
+  return(pa)
+}
+
+modelAbundTime <- function(abundanceData){
+  modAbund <- lm(formula = abundance ~ time, data = abundanceData)
+  summary(modAbund)
+  return(modAbund)
+}
+
+.inputObjects <- function(sim) {
+  # Any code written here will be run during the simInit for the purpose of creating
+  # any objects required by this module and identified in the inputObjects element of defineModule.
+  # This is useful if there is something required before simulation to produce the module
+  # object dependencies, including such things as downloading default datasets, e.g.,
+  # downloadData("LCC2005", modulePath(sim)).
+  # Nothing should be created here that does not create a named object in inputObjects.
+  # Any other initiation procedures should be put in "init" eventType of the doEvent function.
+  # Note: the module developer can check if an object is 'suppliedElsewhere' to
+  # selectively skip unnecessary steps because the user has provided those inputObjects in the
+  # simInit call, or another module will supply or has supplied it. e.g.,
+  # if (!suppliedElsewhere('defaultColor', sim)) {
+  #   sim$map <- Cache(prepInputs, extractURL('map')) # download, extract, load file from url in sourceURL
+  # }
+
+  #cacheTags <- c(currentModule(sim), "function:.inputObjects") ## uncomment this if Cache is being used
+  dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
+  message(currentModule(sim), ": using dataPath '", dPath, "'.")
+
+  # ! ----- EDIT BELOW ----- ! #
+  if (!suppliedElsewhere(object = "abund", sim = sim)) {
+    sim$abund <- prepInputs(url = extractURL("abund"),
+                            targetFile = "abundanceData.csv",
+                            destinationPath = dPath,
+                            fun = "data.frame",
+                            header = TRUE)
+    warning(paste0("abund was not supplied. Using example data"), immediate. = TRUE)
+  }
+  # ! ----- STOP EDITING ----- ! #
+  return(invisible(sim))
+}
+```
+
+One important note is that all new objects being created (i.e., assigned to `sim` in the form of `sim$object <- function1(args)`) are defined in the `createdOutputs()`. If an object created is not assigned to sim or described in `createdOutputs()` it will not be available at the end of the simulation.\
 
 
-<!-- # tableToRasters: -->
-<!-- # For each time(sim) -->
-<!-- ras <- rast(abund[time == time(sim), c("lat", "lon", "abundance")], type="xyz") -->
-<!-- crs(ras) <- "GEOGCRS[\"WGS 84 (CRS84)\",\n    DATUM[\"World Geodetic System 1984\",\n        ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    USAGE[\n        SCOPE[\"unknown\"],\n        AREA[\"World\"],\n        BBOX[-90,-180,90,180]],\n    ID[\"OGC\",\"CRS84\"]]" -->
-
-<!-- # plot: -->
-<!-- yearsToPlot <- start(sim):time(sim) -->
-<!-- p <- plotAbundance(abundanceData = abund[time %in% yearsToPlot,]) # FOR each new year, you add the data. -->
-<!-- plotAbundance <- function(abundanceData){ -->
-<!--   abundData <- Copy(abundanceData) -->
-<!--   abundData[, time := as.factor(time)] -->
-<!--   abundData[, averageYear := mean(abundance), by = "time"] -->
-<!--   pa <- ggplot(data = abundData, aes(x = abundance, group=time, color=time, fill = time)) +  -->
-<!--     geom_histogram(binwidth=5) + -->
-<!--     facet_grid(time ~ .) + -->
-<!--     geom_vline(data = unique(abundData[, c("time", "averageYear")]),  -->
-<!--                aes(xintercept = averageYear), -->
-<!--                linetype="dashed", color = "black") + -->
-<!--     theme(legend.position = "none") -->
-<!--   return(pa) -->
-<!-- } -->
-<!-- plot(ras, main = time(sim)) -->
-
-<!-- # abundanceThroughTime (only happens in the last year): -->
-<!-- modelAbundTime <- function(abundanceData){ -->
-<!--   modAbund <- lm(formula = abundance ~ time, data = abundanceData) -->
-<!--   summary(modAbund) -->
-<!--   return(modAbund) -->
-<!-- } -->
 
 
 <!-- # PART 2: Setting up your project  -->
@@ -454,8 +768,11 @@ and might in some instances fail.
 <!-- # 2.4. Add the extra 2 modules -->
 <!-- # 2.5. Run the full script.  -->
 
-# THE simList
+
 
 ## THINGS TO PRESENT:
 Changing start time of the module (start time)
 Change plotting time of the module (change parameter)
+Mix matching modules: first abundance alone, then with Temperature, then with LM, at 
+last with forecasting
+
