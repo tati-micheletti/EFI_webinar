@@ -604,7 +604,7 @@ defineModule(sim, list(
                                "numeric form), `years` (year of the data collection in numeric",
                                "form) and coordinates in  latlong system (two columns, `lat` and",
                                "`long`, indicating latitude and longitude, respectively)"), 
-                 sourceURL = "") #<~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FILL IT UP WHEN DATA HAS BEEN UPLOADED!
+                 sourceURL = "https://github.com/tati-micheletti/EFI_webinar/raw/main/abundanceData.csv")
   ),
   outputObjects = bindrows(
     createsOutput(objectName = "abundaRas", objectClass = "spatRaster", 
