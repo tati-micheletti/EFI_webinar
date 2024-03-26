@@ -13,18 +13,18 @@
 # WEDNESDAY:
 # [X] Versioning
 # [ ] Come up with more interesting data!!!
-# [ ] Publishing all the modules in Zenodo: 1/3
-# [ ] Publishing all the modules in Zenodo: 2/3
-# [ ] Publishing all the modules in Zenodo: 3/3
-# [ ] Push the whole Webinar to GitHub
-# [ ] Publish the whole Webinar in Zenodo
-# [ ] Work on README files
+# [X] Push the whole Webinar to GitHub
+# [X] Work on README files
 # [ ] Work on Module's manuals
 # [ ] Add citations
 # [ ] Add tags to the versions of SpaDES.project, Require, SpaDES.core, reproducible for the installation process
 # [ ] Add figures of results to rmd to make it more appealing!
 # [ ] Test in other machines
 # [ ] Ask for help to write tests? 
+# [ ] Publishing all the modules in Zenodo: 1/3
+# [ ] Publishing all the modules in Zenodo: 2/3
+# [ ] Publishing all the modules in Zenodo: 3/3
+# [ ] Publish the whole Webinar in Zenodo
 
 # Checklist Upload to Statistical Series:
 # [ ] README
