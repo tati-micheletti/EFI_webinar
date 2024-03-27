@@ -13,19 +13,18 @@ Sys.which("make")
 # 3. Run the code:
 
 wd <- "~/SpaDES_Projects_demo"
-lib <- file.path(wd, "library")
+Lib <- file.path(wd, "library")
 dir.create(wd)
-dir.create(lib)
+dir.create(Lib)
 setwd(wd)
-.libPaths(lib)
-.libPaths()
+.libPaths(Lib)
 
-install.packages("devtools", lib = lib) # You might be prompted to reinstall packages from source. Please allow it.  
+install.packages("devtools", lib = Lib) # You might be prompted to reinstall packages from source. Please allow it.  
 
-devtools::install_github("PredictiveEcology/Require", ref = "3b239d6d4d18fe39dfa40a730df5094e74c086f8", lib = lib)
-devtools::install_github("PredictiveEcology/reproducible", ref = "40033e6ddea151cbd31021ad73013393d71e1f06", lib = lib)
-devtools::install_github("PredictiveEcology/SpaDES.core", ref = "a36dac8ecfc29173294b1bf76fbc63fa1d60e122", lib = lib)
-devtools::install_github("PredictiveEcology/SpaDES.project", ref = "e32abe20d89f97d03996b4335655ad000dbab89b", lib = lib)
+devtools::install_github("PredictiveEcology/Require", ref = "3b239d6d4d18fe39dfa40a730df5094e74c086f8", lib = Lib)
+devtools::install_github("PredictiveEcology/reproducible", ref = "40033e6ddea151cbd31021ad73013393d71e1f06", lib = Lib)
+devtools::install_github("PredictiveEcology/SpaDES.core", ref = "a36dac8ecfc29173294b1bf76fbc63fa1d60e122", lib = Lib)
+devtools::install_github("PredictiveEcology/SpaDES.project", ref = "e32abe20d89f97d03996b4335655ad000dbab89b", lib = Lib)
 
 # Please Restart your session
 wd <- "~/SpaDES_Projects_demo"
