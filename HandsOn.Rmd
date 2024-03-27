@@ -61,26 +61,26 @@ We will start by installing `Require`, which is a package which tries to resolve
 package dependencies and versioning to ensure reproducibility. This package is used in the background
  by SpaDES modules, but can also be used as a general approach to installing and loading libraries 
  from both CRAN and github. We first test if `Require` has already been installed, and if not, we 
- install and load it.
-
+ install and load it. As we are slowly transitioning `SpaDES.project` (which we will use in PART II) to CRAN, we will need some of the most up-to-date versions of these two packages. Therefore, we will install them from GitHub using `devtools`. It is good practice to restart your session after installing packages, so please proceed to it if `devtools`, `Require` and/or `SpaDES` were installed.\
+\
 ```{r Require}
-if(!require("Require")){
-  install.packages("Require")
+if(!require("devtools")){
+  install.packages("devtools")
 }
-library("Require")
+devtools::install_github("PredictiveEcology/Require", ref = "3b239d6d4d18fe39dfa40a730df5094e74c086f8")
 ```
-
-After loading `Require`, we install and/or load SpaDES.  
-
+\
+After loading `Require`, we install and/or load `SpaDES`.\
+\
 ```{r SpaDES}
-Require("SpaDES")
+Require::Require("SpaDES")
 ```
 
 ### 3. Creating a New Module  
 
 Once SpaDES has been loaded, we use the function `newModule()` to create a new module. The function 
 takes two arguments: `name`, the name of the module, and `path`, which is the directory where you  
-want to create this new module. The new module is a simply a folder containing the following files:  
+want to create this new module. The new module is a simply a folder containing the following files:
 
 - **Templated Module’s Manual**: where the module's usage is detailed - `module.Rmd`.  
 - **Functions’ folder**: where functions may be saved (alternatively, they can also be stored in the module's R file) - `R/`.  
@@ -92,31 +92,37 @@ want to create this new module. The new module is a simply a folder containing t
 - **LICENSE**: where you establish which type of license your module will have - `LICENSE.md`.    
 - **Module**: Templated script constituted of 3 Main Parts (plus potential functions) - `module.Rmd`.    
 
+Now we define our working directory and create the module's template on it.\
+\
 ```{r newModule}
-newModule(name = "speciesAbundance", path = "~/EFI")
+wd <- reproducible::checkPath("~/SpaDES_Modules", create = TRUE)
+SpaDES.core::newModule(name = "speciesAbundance", path = wd)
 ```
-
+\
 When we create the module, we get the following message and the module file (`speciesAbundance.R`), 
 is opened in the source window. The message repeats what we discussed above.  
-
+\
 ```{r newModuleInfo}
-New module speciesAbundance created at C:/Users/Tati/Documents/EFI
+New module speciesAbundance created at C:/Users/tatim/Documents/SpaDES_Modules
 * edit module code in speciesAbundance.R
 * write tests for your module code in tests/
 * describe and document your module in speciesAbundance.Rmd
 * tell others how to cite your module by editing citation.bib
 * choose a license for your module; see LICENSE.md
 Using RStudio; may need to open manually e.g., with file.edit or file.show
-file.edit('C:/Users/Tati/Documents/EFI/speciesAbundance/speciesAbundance.R')
+file.edit('C:/Users/tatim/Documents/SpaDES_Modules/speciesAbundance/speciesAbundance.R')
 Using RStudio; may need to open manually e.g., with file.edit or file.show
-file.edit('C:/Users/Tati/Documents/EFI/speciesAbundance/speciesAbundance.Rmd')
+file.edit('C:/Users/tatim/Documents/SpaDES_Modules/speciesAbundance/speciesAbundance.Rmd')
+Warning message:
+In newModuleTests(name = name, path = path, open = !isFALSE(open),  :
+  The `testthat` package is required to run unit tests on modules.
 ```
 
 ### 4. Editing the New Module  
 
 Now we can start working on the new module's file. We will skip the module documentation (manual, 
 citation, readme and license) and tests due to time constraints, but you should never skip these 
-when developing your modules, so they can be used by others.  
+when developing your modules, so they can be used by others.\
 
 #### 4.1. Descriptive Metadata\
 \
@@ -251,7 +257,7 @@ look similar to this (note that the parameters not used were removed just to imp
                                "numeric form), `years` (year of the data collection in numeric",
                                "form) and coordinates in  latlong system (two columns, `lat` and",
                                "`long`, indicating latitude and longitude, respectively)"), 
-                 sourceURL = "https://zenodo.org/records/10869730/files/abundanceData.csv")
+                 sourceURL = "https://zenodo.org/records/10885997/files/abundanceData.csv")
   ),
   outputObjects = bindrows(
     createsOutput(objectName = "abundaRas", 
@@ -648,7 +654,7 @@ defineModule(sim, list(
                                "numeric form), `years` (year of the data collection in numeric",
                                "form) and coordinates in  latlong system (two columns, `lat` and",
                                "`long`, indicating latitude and longitude, respectively)"), 
-                 sourceURL = "https://zenodo.org/records/10869730/files/abundanceData.csv")
+                 sourceURL = "https://zenodo.org/records/10885997/files/abundanceData.csv")
   ),
   outputObjects = bindrows(
     createsOutput(objectName = "abundaRas", objectClass = "SpatRaster", 
@@ -844,10 +850,11 @@ Here we provide enough information to set up a project with our example in mind.
 on [using git and GitHub](https://spades-project.predictiveecology.org/articles/iii-using-git-github.html), [installing dependencies, R and RStudio](https://spades-project.predictiveecology.org/articles/iv-Installing-R.html), finding [available SpaDES modules](https://spades-project.predictiveecology.org/articles/v-finding-other-modules.html), and 
 setting up a [`SpaDES project`](https://spades-project.predictiveecology.org/articles/i-getting-started.html) can be found in the [vignettes Session](https://spades-project.predictiveecology.org/#getting-started) of the Predictive Ecology website.\
 \
-First, we should install the package.\
+First, we should install the package. As `SpaDES.project` is almost on its way to CRAN, we will install it from GitHub (branch `transitions`, commit `"e32abe20d89f97d03996b4335655ad000dbab89b"`, which is the one used to generate this tutorial).\
+After installing `SpaDES.project`, we should restart our session.\
 \
 ```{r install-spades-project}
-Require::Require("SpaDES.project")
+devtools::install_github("PredictiveEcology/SpaDES.project", ref = "e32abe20d89f97d03996b4335655ad000dbab89b")
 ```
 \
 The main function in the `SpaDES.project` package is called `setupProject()`. The primary five objectives of this function are:\
@@ -878,26 +885,44 @@ Details on why this function is so useful are described in details in its [vigne
 \
 As there isn't a specific template, as `setupProject()` is a function, we will provide the templates for our example here. It is good practice to restart your session frequently to improve reproducibility. In order to demonstrate the flexibility of SpaDES, we will establish a couple of different `runs`. These can, in other cases, be seen as different replicates, or different scenarios. Each run has an unique name (`runName`) and a unique set of parameters (and usually, a unique `outputs` folder, as defined by the user). We will save each run with different `setupProject()` arguments. The first one will be the most straight forward case using all default parameters and objects.\
 \
-First, we set our home directory. This is where a folder with the project will be created, with the name specified in the argument `paths = list(projectPath = 'projectName')`. This should either be created on a disk that has enough space, depending on the simulation needs, or scratch paths should be provided (i.e., `terra::terraOptions(tempdir = "~/scratch/terra")` before `setupProject()` call, and in `paths = list(scratchPath = "~/scratch/"`) of `setupProject()`).\
+First, we will restart our session and then set our desired directory. This is where a folder with the project will be created, with the name specified in the argument `paths = list(projectPath = 'projectName')`. This should either be created on a disk that has enough space, depending on the simulation needs, or scratch paths should be provided (i.e., `terra::terraOptions(tempdir = "~/scratch/terra")` before `setupProject()` call, and in `paths = list(scratchPath = "~/scratch/"`) of `setupProject()`).\
 \
 ```{r firstStep}
-setwd("~/GitHub")
+wd <- reproducible::checkPath("~/SpaDES_Projects", create = TRUE)
+setwd(wd)
 ```
 \
 Once the home directory has been set, we will call the `setupProject()` function. At first, we will use the default values provided in the module. We will only need to provide the (1) `paths` to the project and outputs (as we want each call to the project with variations being saved to a different folder), the (2) `modules` that will be used in the project, and the (3) `times` for which the analysis or simulations will happen. We can restart our session before setting up the project, and don't need to load any libraries at the moment. All needed libraries will be installed and loaded during the simulation call.\
 \
-At this moment, we have two options to setup where the `modules` of our project will be hosted, depending on user's preferences: (1) cloud-based module repository, or (2) local module repository. Mixing GitHub and locally provided modules is also supported; the function will download the repositories to your provided `modulePath`.\
+At this moment, we have two options to setup where the `modules` of our project will be hosted, depending on user's preferences: (1) local module repository. Mixing GitHub and locally provided modules is also supported; the function will download the repositories to your provided `modulePath`, or (2) cloud-based module repository.\
 \
-**OPTION 1.** *Cloud-based module repository*: The first option is **strongly suggested**. Once the module is ready, the user may uploads it to GitHub and uses the web address to indicate in the project function where this module can be found. This is the preferred option, as it grants other users access to the modules and increases reproducibility. In this case, the user will have to setup an account in [GitHub](https://github.com/), create a repository with the name of the module (i.e., `speciesAbundance`), and push the module we created to it. Please note that the repository should contain all files and folder structure as these were in the original module's folder, not the folder containing these (Figure 2):\
+**OPTION 1.** *Local module repository*: The first option is to keep and use your modules locally. As we already have an existing module (i.e., `speciesAbundance`), we can either (A) pass the correct location of the existing module in the argument such as `paths = list(modulePath = "~/Documents/GitHub/")`; or (B) manually create the folder specified in `projectPath` (i.e., `integratingSpaDESmodules`) and move the module directory to a folder named `modules`. The advantage of the *Option B* is that you keep all modules used in a given project in one place, facilitating any improvements and debugging. In Option 2 (A), the function call will be similar to this. Note that if the dependency packages have not yet been installed, they will now. Please run one function at a time to ensure any potential warnings or errors are seen. Make sure you watch the Plots window!\
+\
+```{r setupProject11}
+runName <- "defaults"
+out <- SpaDES.project::setupProject(
+  runName = runName,
+  paths = list(projectPath = "integratingSpaDESmodules",
+               modulePath = file.path(dirname(wd), "SpaDES_Modules"),
+               outputPath = file.path("outputs", runName)),
+  modules = c("speciesAbundance"),
+  times = list(start = 2013,
+               end = 2022),
+  updateRprofile = FALSE)
+
+snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
+```
+\
+**OPTION 2.** *Cloud-based module repository*: The first option is **strongly suggested**. Once the module is ready, the user may uploads it to GitHub and uses the web address to indicate in the project function where this module can be found. This is the preferred option, as it grants other users access to the modules and increases reproducibility. In this case, the user will have to setup an account in [GitHub](https://github.com/), create a repository with the name of the module (i.e., `speciesAbundance`), and push the module we created to it. Please note that the repository should contain all files and folder structure as these were in the original module's folder, not the folder containing these (Figure 2):\
 \
 ![Module organization when hosted in GitHub.](C:\Users\Tati\Documents\GitHub\EFI_webinar\github.png)
 \
 \
 *Note on using git submodules:* For users who wish to have their projects uploaded to GitHub, but maintain modularity (i.e., keep each module in its own repository to inherit module's updates), there is an experimental argument in `setupProject()` that allows the modules to be setup as `gitsubmodules`. This argument is `useGit = "sub"` and will work if the project (i.e., `integratingSpaDESmodules`) is setup as a git repository. This can be done manually by the user, or interactively from R. The function guides the user on the steps needed, although basic knowledge on how `git` works is required.\
 \
-For those who choose OPTION 1, `setupProject()` should look similar to this:\
+For those who choose OPTION 2, `setupProject()` should look similar to this code (i.e., replacing the GitHub user). For now, however, we will use `OPTION 1` to keep working with the module just created, as you likely did not have the chance to setup the GitHub repository (which can also be done from within setupProject function!). So please, don't run the `OPTION 2` code.:\
 \
-```{r setupProject11}
+```{r setupProject12}
 runName <- "defaults"
 out <- SpaDES.project::setupProject(
   runName = runName,
@@ -905,22 +930,8 @@ out <- SpaDES.project::setupProject(
                outputPath = file.path("outputs", runName)),
   modules = c("tati-micheletti/speciesAbundance@main"),
   times = list(start = 2013,
-               end = 2022))
-
-snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
-```
-\
-**OPTION 2.** *Local module repository*: The second option is to keep and use your modules locally. As we already have an existing module (i.e., `speciesAbundance`), we can either (A) pass the correct location of the existing module in the argument such as `paths = list(modulePath = "~/Documents/GitHub/")`; or (B) manually create the folder specified in `projectPath` (i.e., `integratingSpaDESmodules`) and move the module directory to a folder named `modules`. The advantage of the *Option B* is that you keep all modules used in a given project in one place, facilitating any improvements and debugging. In Option 2 (A), the function call will be similar to this:\
-\
-```{r setupProject12}
-runName <- "defaults"
-out <- SpaDES.project::setupProject(
-  runName = runName,
-  paths = list(projectPath = "integratingSpaDESmodules", 
-               outputPath = file.path("outputs", runName)),
-  modules = c("speciesAbundance"),
-  times = list(start = 2013,
-               end = 2022))
+               end = 2022),
+  updateRprofile = FALSE)
 
 snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
 ```
@@ -947,16 +958,17 @@ snippsim$modAbund
 summary(snippsim$modAbund)
 ```
 \
-Apparently, abundance is changing through time. It seems to be significantly increasing:\
+Apparently, abundance is changing through time. It seems to be significantly decreasing:\
 \
 ```{r modRes}
 > snippsim$modAbund
+
 Call:
 lm(formula = abundance ~ years, data = abundanceData)
 
 Coefficients:
 (Intercept)        years  
-  -5829.823        2.922  
+   2621.873       -1.294  
 
 > summary(snippsim$modAbund)
 
@@ -964,19 +976,19 @@ Call:
 lm(formula = abundance ~ years, data = abundanceData)
 
 Residuals:
-    Min      1Q  Median      3Q     Max 
--77.487 -16.566   0.277  17.042  72.513 
+     Min       1Q   Median       3Q      Max 
+-16.5667  -0.6839   0.1988   0.7873  13.4333 
 
 Coefficients:
               Estimate Std. Error t value Pr(>|t|)    
-(Intercept) -5.830e+03  5.249e+01  -111.1   <2e-16 ***
-years        2.922e+00  2.602e-02   112.3   <2e-16 ***
+(Intercept)  2.622e+03  5.268e+00   497.7   <2e-16 ***
+years       -1.294e+00  2.611e-03  -495.7   <2e-16 ***
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
-Residual standard error: 23.4 on 98008 degrees of freedom
-Multiple R-squared:  0.114,	Adjusted R-squared:  0.114 
-F-statistic: 1.261e+04 on 1 and 98008 DF,  p-value: < 2.2e-16
+Residual standard error: 2.348 on 98008 degrees of freedom
+Multiple R-squared:  0.7149,	Adjusted R-squared:  0.7149 
+F-statistic: 2.457e+05 on 1 and 98008 DF,  p-value: < 2.2e-16
 ```
 \
 The first thing we will change is the starting date of our model. We will start our project in 
@@ -984,15 +996,18 @@ The first thing we will change is the starting date of our model. We will start 
 As always, restart your session to make sure the workflow can be ran from the start:\
 \
 ```{r time}
-setwd("~/GitHub")
+wd <- reproducible::checkPath("~/SpaDES_Projects", create = TRUE)
+setwd(wd)
 runName <- "lateStart"
 out <- SpaDES.project::setupProject(
   runName = runName,
   paths = list(projectPath = "integratingSpaDESmodules",
+               modulePath = file.path(dirname(wd), "SpaDES_Modules"),
                outputPath = file.path("outputs", runName)),
-  modules = c("tati-micheletti/speciesAbundance@main"),
+  modules = c("speciesAbundance"),
   times = list(start = 2018,
-               end = 2022))
+               end = 2022),
+  updateRprofile = FALSE)
 
 snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
 ```
@@ -1004,16 +1019,19 @@ a list of which parameter and value it should take in. In this case, we change t
 We should then see that plotting will only start happening at year 2018:\
 \
 ```{r params}
-setwd("~/GitHub")
+wd <- reproducible::checkPath("~/SpaDES_Projects", create = TRUE)
+setwd(wd)
 runName <- "latePlotting"
 out <- SpaDES.project::setupProject(
   runName = runName,
   paths = list(projectPath = "integratingSpaDESmodules",
+               modulePath = file.path(dirname(wd), "SpaDES_Modules"),
                outputPath = file.path("outputs", runName)),
-  modules = c("tati-micheletti/speciesAbundance@main"),
+  modules = c("speciesAbundance"),
   params = list(speciesAbundance = list(.plotInitialTime = 2018)),
   times = list(start = 2013,
-               end = 2022))
+               end = 2022),
+  updateRprofile = FALSE)
 
 snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
 ```
@@ -1029,15 +1047,19 @@ well described already in the module's manual.\
 So first, we will run both `speciesAbundance` and `temperature` modules. To do that using the defaults provided by the `temperature` module, the only thing needed in the `setupProject()` is the address to where the module is hosted. Note that we extend our `end time` of the simulation as the new module has a longer time series than out original model.\
 \
 ```{r spAndTemp}
+wd <- reproducible::checkPath("~/SpaDES_Projects", create = TRUE)
+setwd(wd)
 runName <- "defaultTemp"
 out <- SpaDES.project::setupProject(
   runName = runName,
   paths = list(projectPath = "integratingSpaDESmodules",
+               modulePath = file.path(dirname(wd), "SpaDES_Modules"),
                outputPath = file.path("outputs", runName)),
-  modules = c("tati-micheletti/speciesAbundance@main",
+  modules = c("speciesAbundance",
               "tati-micheletti/temperature@main"),
   times = list(start = 2013,
-               end = 2032))
+               end = 2032),
+  updateRprofile = FALSE)
 
 snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
 ```
@@ -1047,19 +1069,23 @@ In our example, there is no direct integration between the `speciesAbundance` an
 Now we will add a third module, which aims at fitting a linear model (LM) to help understand and forecast the relationship between species abundance and temperature. This module was carefully created, taking into account the objects created by `speciesAbundance` and `temperature`, more specifically, `abundaRas` and `tempRas`, respectively. These objects outputted by `speciesAbundance` and `temperature` are inputs in the `speciesAbundTempLM` module. The module was planned to identify the point in time when the data from the `speciesAbundance` module is no longer available, and forecast from that point on the abundance based on the provided temperature. The time for fitting of the LM is scheduled by the user, using a default of 2022, when all the data from the `speciesAbundance` is available. Until then, the module only stores the provided data in a `data.table`. The predictions are plotted and saved in the `outputs` folder.\
 \
 ```{r forecasting}
+wd <- reproducible::checkPath("~/SpaDES_Projects", create = TRUE)
+setwd(wd)
 runName <- "integratedDefault"
 out <- SpaDES.project::setupProject(
   runName = runName,
   paths = list(projectPath = "integratingSpaDESmodules",
+               modulePath = file.path(dirname(wd), "SpaDES_Modules"),
                outputPath = file.path("outputs", runName)),
-  modules = c("tati-micheletti/speciesAbundance@main",
+  modules = c("speciesAbundance",
               "tati-micheletti/temperature@main",
               "tati-micheletti/speciesAbundTempLM@main"),
   times = list(start = 2013,
                end = 2032),
   loadOrder = c("speciesAbundance",
               "temperature",
-              "speciesAbundTempLM"))
+              "speciesAbundTempLM"),
+  updateRprofile = FALSE)
 
 snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
 ```
@@ -1075,6 +1101,7 @@ The most common mistakes a user makes when starting working with SpaDES are:\
 - Forgetting the correct usage of parameters: `P(sim)$paramName\`
 - Forgetting to schedule or scheduling events incorrectly\
 - Forgetting to assign objects that will be used by other events and/or modules to the `simList`\
+- Forgetting comas and parenthesis in the Module file\
 
 ## Further resources:\
 \

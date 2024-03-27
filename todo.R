@@ -12,7 +12,7 @@
 
 # WEDNESDAY:
 # [X] Versioning
-# [ ] Come up with more interesting data!!!
+# [X] Come up with more interesting data!!!
 # [X] Push the whole Webinar to GitHub
 # [X] Work on README files
 # [ ] Work on Module's manuals
