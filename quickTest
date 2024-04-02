@@ -1,0 +1,31 @@
+# Quick Run of a Simulation
+
+install.packages("data.table")
+if(!require("devtools")){
+  install.packages("devtools")
+}
+devtools::install_github("PredictiveEcology/Require", ref = "3b239d6d4d18fe39dfa40a730df5094e74c086f8")
+devtools::install_github("PredictiveEcology/SpaDES.project", ref = "e32abe20d89f97d03996b4335655ad000dbab89b")
+Require::Require("SpaDES.core")
+
+wd <- reproducible::checkPath("~/SpaDES_Projects", create = TRUE)
+
+setwd(wd)
+runName <- "integratedDefault"
+out <- SpaDES.project::setupProject(
+  runName = runName,
+  paths = list(projectPath = "integratingSpaDESmodules",
+               modulePath = file.path(dirname(wd), "SpaDES_Modules"),
+               outputPath = file.path("outputs", runName)),
+  modules = c("tati-micheletti/speciesAbundance@main",
+              "tati-micheletti/temperature@main",
+              "tati-micheletti/speciesAbundTempLM@main"),
+  times = list(start = 2013,
+               end = 2032),
+  loadOrder = c("speciesAbundance",
+                "temperature",
+                "speciesAbundTempLM"),
+  updateRprofile = FALSE)
+
+snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
+
