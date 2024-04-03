@@ -10,38 +10,40 @@
 # You can confirm you have it installed correctly by running
 Sys.which("make")
 # If it shows a “non-empty” path, it should be installed correctly
+# 3. Setting the project's directory. A folder named integratingSpaDESmodules will be created in it with all project elements
+setwd("~") # here please set the home folder where the demo should live. 
 
-# 3. Run the code:
+# /!\ IMPORTANT /!\  Please Make sure the current file is saved in the folder specified above
+message(paste0("Please Make sure the current file is saved in the folder specified above (",getwd(),")"))
 
-wd <- "~/SpaDES_Projects_demo"
+# 4. Run the code:
+getOrUpdatePkg <- function(p, minVer = "0") {
+  if (!isFALSE(try(packageVersion(p) < minVer, silent = TRUE) )) {
+    repo <- c("predictiveecology.r-universe.dev", getOption("repos"))
+    install.packages(p, repos = repo)
+  }
+}
 
-install.packages("data.table")
-if(!require("devtools")){
-  install.packages("devtools")
-} # You might be prompted to reinstall packages from source. Please allow it.  
+getOrUpdatePkg("remotes")
+remotes::install_github("PredictiveEcology/Require", ref = "a2c60495228e3a73fa513435290e84854ca51907", upgrade = FALSE)
+getOrUpdatePkg("SpaDES.project", "0.0.8.9040")
 
-devtools::install_github("PredictiveEcology/Require", ref = "3b239d6d4d18fe39dfa40a730df5094e74c086f8", upgrade = FALSE)
-devtools::install_github("PredictiveEcology/SpaDES.project", ref = "e32abe20d89f97d03996b4335655ad000dbab89b", upgrade = FALSE)
-Require::Require("SpaDES.core")
 
-# Please Restart your session
-wd <- reproducible::checkPath("~/SpaDES_demo", create = TRUE)
-
-setwd(wd)
-runName <- "integratedDefault"
+# /!\ IMPORTANT /!\  The first time you run the code below, the RStudio session will be restarted and the project file will be loaded.
+#                    The libraries will also be installed in a specific folder in the project directory to avoid package incompatibilities.  
+#                    This helps the project to be stand-alone and respect specific user's configurations.
+#                    Once the project has reopened, please re-run the current script
 out <- SpaDES.project::setupProject(
-  runName = runName,
   paths = list(projectPath = "integratingSpaDESmodules",
-               modulePath = file.path(dirname(wd), "SpaDES_Modules"),
-               outputPath = file.path("outputs", runName)),
+               modulePath = "SpaDES_Modules",
+               outputPath = "outputs"),
   modules = c("tati-micheletti/speciesAbundance@main",
               "tati-micheletti/temperature@main",
               "tati-micheletti/speciesAbundTempLM@main"),
   times = list(start = 2013,
                end = 2032),
-  loadOrder = c("speciesAbundance",
-                "temperature",
-                "speciesAbundTempLM"),
-  updateRprofile = FALSE)
+  Restart = TRUE
+)
 
 snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
+
