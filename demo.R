@@ -3,13 +3,11 @@
 
 # 1. Install/Update R: 4.3.2
 
-# 2. Make sure R development tools are installed:
-#   Windows: install Rtools as administrator. (https://cran.r-project.org/bin/windows/Rtools/rtools43/rtools.html)
-#   macOS: install Xcode commandline tools from the terminal: xcode-select --install.
-#   Debian/Ubuntu Linux: ensure r-base-dev is installed.  
-# You can confirm you have it installed correctly by running
-Sys.which("make")
-# If it shows a “non-empty” path, it should be installed correctly
+# 2. Make sure you have the support for the spatial package 'terra'. Depending on 
+# your system, you will need to install GDAL libraries and Rcpp before running the 
+# script, in other cases, 'terra' will take care of it.
+# Please see details for installing these here: https://rspatial.github.io/terra/
+
 # 3. Setting the project's directory. A folder named integratingSpaDESmodules will be created in it with all project elements
 setwd("~") # here please set the home folder where the demo should live. 
 
@@ -28,11 +26,6 @@ getOrUpdatePkg("remotes")
 remotes::install_github("PredictiveEcology/Require", ref = "a2c60495228e3a73fa513435290e84854ca51907", upgrade = FALSE)
 getOrUpdatePkg("SpaDES.project", "0.0.8.9040")
 
-
-# /!\ IMPORTANT /!\  The first time you run the code below, the RStudio session will be restarted and the project file will be loaded.
-#                    The libraries will also be installed in a specific folder in the project directory to avoid package incompatibilities.  
-#                    This helps the project to be stand-alone and respect specific user's configurations.
-#                    Once the project has reopened, please re-run the current script
 out <- SpaDES.project::setupProject(
   paths = list(projectPath = "integratingSpaDESmodules",
                modulePath = "SpaDES_Modules",
@@ -46,4 +39,3 @@ out <- SpaDES.project::setupProject(
 )
 
 snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
-
