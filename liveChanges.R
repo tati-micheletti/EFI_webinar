@@ -2,21 +2,26 @@
 
 # 1. Exploring the results from the simulation
 
-objectDiagram(results) # Presents a diagram of project's object dependencies
-moduleDiagram(results) # Presents a diagram of modules' dependencies
-completed(results) # Presents all the events that were run
-results$lm
+SpaDES.core::objectDiagram(results) # Presents a diagram of project's object dependencies
+SpaDES.core::moduleDiagram(results) # Presents a diagram of modules' dependencies
+SpaDES.core::completed(results) # Presents all the events that were run
+results$abundTempLM
 
 # 2. Assess Forecasts
-results$forecasts
-terra::plot(results$forecastedDifferences)
+terra::plot(rast(results$forecasts))
+terra::plot(results$forecastedDifferences, col = c("#49006A", "#7A0177", "#AE017E", 
+                                                   "#DD3497", "#F768A1", "#FA9FB5", 
+                                                   "#FCC5C0", "#FDE0DD", "#FFF7F3"))
 
 # 3.	Add a validation module to make it more PERFICT
 # Just add the following module to the setupProject call and re-run it:
 
 "tati-micheletti/evaluateLM@main"
-# Now check the diagnostics
+
+# Now check the diagnostics and plots
 results$modDiagnostics
+grid::grid.raster(png::readPNG(results$modDiagnostics$qqPlot))
+grid::grid.raster(png::readPNG(results$modDiagnostics$residualsVsFitted))
 
 # 4. Demonstrate modularity by showing modules can be run stand alone
 # Just remove the following modules from the setupProject() call and re-run it:
@@ -35,8 +40,6 @@ modelAbundTime <- function(abundanceData){
   summary(modAbund)
   return(modAbund)
 }
-
-plotAbundance(abundanceData = sim$abund, yearsToPlot = start(sim):time(sim))
 
 # Note that, alternatively, we could have directly added the block of code to the 
 # event as below. But once more complexity is added, the code becomes long and 
@@ -104,7 +107,17 @@ plotAbundance <- function(abundanceData, yearsToPlot){
 
 
 
-# ANSWER:
+##### ANSWER BELOW:
+
+
+
+
+
+
+
+
+
+
 
 
 
