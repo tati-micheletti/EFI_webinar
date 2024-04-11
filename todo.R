@@ -19,23 +19,31 @@
 # [X] Versioning of reproducible: "2.0.10", "40033e6ddea151cbd31021ad73013393d71e1f06"
 # [X] Versioning of Require: "0.3.1.9044", "3b239d6d4d18fe39dfa40a730df5094e74c086f8"
 # [X] Versioning of SpaDES.project: "0.0.8.9040", "e32abe20d89f97d03996b4335655ad000dbab89b"
-# [ ] Work on Bullet points direct file
-# [ ] Work on presentation
+# [X] Work on Bullet points direct file
+# [X] Create integration tests (At project level -- not)
 # [X] Add minimum R Version: 4.3.2
-# [ ] Work on Module's manuals
-# [ ] Add citations
-# [ ] Add tags to the versions of SpaDES.project, Require, SpaDES.core, reproducible for the installation process
-# [ ] Add figures of results to rmd to make it more appealing!
-# [ ] Test in other machines
-# [ ] Ask for help to write tests? 
+# [X] Work on Module's manuals
+# [X] Add citations
+# [X] Add tags to the versions of SpaDES.project, Require, SpaDES.core, reproducible for the installation process
+# [X] Test in other machines
+# [X] write tests
+# [X] Create a validation module
+# [X] Test the whole workflow!
+# [X] Render manuals and push
+
 # [ ] Publishing all the modules in Zenodo: 1/3
 # [ ] Publishing all the modules in Zenodo: 2/3
 # [ ] Publishing all the modules in Zenodo: 3/3
-# [ ] Publish the whole Webinar in Zenodo
 
-# Checklist Upload to Statistical Series:
+# [ ] Finish the presentation
+# [ ] Review HandsOn
+# [ ] Publish the whole Webinar in Zenodo
+# [ ] Add figures of results to rmd to make it more appealing! ***
+
+# Checklist Upload to Statistical Series -- make it a submodule to my final repo:
 # [ ] README
-# [ ] HandsOn Html and PDF
+# [ ] HandsOn Html and PDF (don't forget all figures!)
 # [ ] Presentation in PDF
-# [ ] Data (update before putting up!)
+# [ ] Demo.R
+# [ ] liveChanges.R
 
