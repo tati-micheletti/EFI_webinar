@@ -26,7 +26,7 @@ getOrUpdatePkg("remotes")
 remotes::install_github("PredictiveEcology/Require", ref = "a2c60495228e3a73fa513435290e84854ca51907", upgrade = FALSE)
 getOrUpdatePkg("SpaDES.project", "0.0.8.9040")
 
-out <- SpaDES.project::setupProject(
+Setup <- SpaDES.project::setupProject(
   paths = list(projectPath = "integratingSpaDESmodules",
                modulePath = "SpaDES_Modules",
                outputPath = "outputs"),
@@ -38,4 +38,4 @@ out <- SpaDES.project::setupProject(
   Restart = TRUE
 )
 
-snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
+results <- do.call(SpaDES.core::simInitAndSpades, Setup)
