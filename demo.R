@@ -1,4 +1,5 @@
 # Available at: https://tinyurl.com/webinarEFI
+
 # Before Starting:
 
 # 1. Install/Update R: 4.3.2
@@ -15,6 +16,9 @@ setwd("~") # here please set the home folder where the demo should live.
 message(paste0("Please Make sure the current file is saved in the folder specified above (",getwd(),")"))
 
 # 4. Run the code:
+
+##################### PART I: Install the installers
+
 getOrUpdatePkg <- function(p, minVer = "0") {
   if (!isFALSE(try(packageVersion(p) < minVer, silent = TRUE) )) {
     repo <- c("predictiveecology.r-universe.dev", getOption("repos"))
@@ -23,19 +27,34 @@ getOrUpdatePkg <- function(p, minVer = "0") {
 }
 
 getOrUpdatePkg("remotes")
+
 remotes::install_github("PredictiveEcology/Require", ref = "a2c60495228e3a73fa513435290e84854ca51907", upgrade = FALSE)
+
 getOrUpdatePkg("SpaDES.project", "0.0.8.9040")
 
+
+
+
+##################### PART II: Download the modules and install the needed packages
+
 Setup <- SpaDES.project::setupProject(
+  
   paths = list(projectPath = "integratingSpaDESmodules",
                modulePath = "SpaDES_Modules",
                outputPath = "outputs"),
+  
   modules = c("tati-micheletti/speciesAbundance@main",
               "tati-micheletti/temperature@main",
               "tati-micheletti/speciesAbundTempLM@main"),
+  
   times = list(start = 2013,
                end = 2032),
+  
   Restart = TRUE
 )
+
+
+
+##################### PART III: Run SpaDES
 
 results <- do.call(SpaDES.core::simInitAndSpades, Setup)
