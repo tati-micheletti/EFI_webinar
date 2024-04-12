@@ -49,7 +49,7 @@
 
 # Checklist Upload to Statistical Series -- make it a submodule to my final repo:
 # [X] README
-# [ ] HandsOn html and PDF (don't forget all figures!)
+# [X] HandsOn html and PDF (don't forget all figures!)
 # [X] Demo.R
 # [X] exploringSpaDES.html / PDF
 # [ ] Presentation in PDF
