@@ -31,19 +31,28 @@
 # [X] Test the whole workflow!
 # [X] Render manuals and push
 
-# [ ] Publishing all the modules in Zenodo: 1/3
-# [ ] Publishing all the modules in Zenodo: 2/3
-# [ ] Publishing all the modules in Zenodo: 3/3
+# USE FOR PRESENTATION: "C:/Users/Tati/Documents"
+
+# [X] Publishing all the modules in Zenodo: 1/4
+# [X] Publishing all the modules in Zenodo: 2/4
+# [X] Publishing all the modules in Zenodo: 3/4
+# [X] Publishing all the modules in Zenodo: 4/4
+
+# [X] Create the repository and link to EFI's as submodule
+# [X] Make the liveChanges.R into .Rmd
+# [X] Add figures of results to rmd to make it more appealing! ***
+# [X] Review HandsOn
 
 # [ ] Finish the presentation
-# [ ] Review HandsOn
 # [ ] Publish the whole Webinar in Zenodo
-# [ ] Add figures of results to rmd to make it more appealing! ***
+
 
 # Checklist Upload to Statistical Series -- make it a submodule to my final repo:
-# [ ] README
-# [ ] HandsOn Html and PDF (don't forget all figures!)
+# [X] README
+# [ ] HandsOn html and PDF (don't forget all figures!)
+# [X] Demo.R
+# [X] exploringSpaDES.html / PDF
 # [ ] Presentation in PDF
-# [ ] Demo.R
-# [ ] liveChanges.R
 
+Require::Install("PredictiveEcology/SpaDES.core@sequentialCaching (HEAD)")
+?SpaDES.core::convertToPackage
