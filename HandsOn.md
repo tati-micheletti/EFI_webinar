@@ -31,13 +31,11 @@ The first thing we will do is step away from `R` and list all needed `inputs`, d
 objective you have in mind. In our example, we want to:\
 1. Download abundance data (with locations and year of counts);\
 2. For each year, we want to convert the table into a raster file;\
-3. We want to check the distribution of the values and rasters for each year;\
-4. In the end, we ant to build a simple linear model to check if and how the abundance is changing though time.\
+3. We want to check the values and rasters for each year.\
 \
 For that, we will need as an `input` the dataset with counts, locations (in lat/long format) and year 
-of survey (`abund`). We also want to `output` two objects, a raster stack of abundance through time, with one raster 
-of abundance values per year (`abundaRas`), and the simple linear model we created to check the change in abundance 
-through time (`modAbund`). Moreover, we want to be able to define two `parameters`, which in this simple example, 
+of survey (`abund`). We also want to `output` two objects, a raster stack of abundance through time (`allAbundaRas`), with one raster 
+of abundance values per year (`abundaRas`). Moreover, we want to be able to define two `parameters`, which in this simple example, 
 are mostly related to plotting: the name of the study area (`areaName`), and the first year for 
 plotting (`.plotInitialTime`).\
 \
@@ -47,7 +45,7 @@ work. This means, drawing a conceptual model of (1) which `events` will happen i
 events, and among themselves. This is extremely helpful in the early days of using SpaDES, while you 
 familiarize yourself with the template. Figure 1 details what is envisioned for this module:  
 
-![Module scheme presenting all important events detailing what happens to the original data.](C:\Users\Tati\Documents\GitHub\EFI_webinar\scheme.png)  
+![Module scheme presenting all important events detailing what happens to the original data.](figures/abundScheme.png)  
 
 \newpage
 
@@ -55,26 +53,25 @@ Once this has been done, it is time to start working on the new module.
 
 ### 2. Installing and Loading Libraries  
 
-We will start by installing `Require`, which is a package which tries to resolve all possible 
-package dependencies and versioning to ensure reproducibility. This package is used in the background
+We will start by installing `Require`, `SpaDES.core`(to run SpaDES), and `SpaDES.project` (which will be used in PART II, to help with the workflow). `Require`  is a package which tries to resolve all possible package dependencies and versioning to ensure reproducibility. This package is used in the background
  by SpaDES modules, but can also be used as a general approach to installing and loading libraries 
  from both CRAN and github. We first test if `Require` has already been installed, and if not, we 
- install and load it. As we are slowly transitioning `SpaDES.project` (which we will use in PART II) to CRAN, we will need some of the most up-to-date versions of these two packages. Therefore, we will install them from GitHub using `devtools`. It is good practice to restart your session after installing packages, so please proceed to it if `devtools`, `Require` and/or `SpaDES` were installed.\
+ install it. As we are slowly transitioning `SpaDES.project` (which we will use in PART II) to CRAN, we will need some of the most up-to-date versions of these two packages. Therefore, we will install them from GitHub using `remotes`. It is good practice to restart your session after installing packages, so please proceed to it if `remotes`, `Require`, `SpaDES.project` and/or `SpaDES.core` were installed.\
 \
 
 ```r
-if(!require("devtools")){
-  install.packages("devtools")
+getOrUpdatePkg <- function(p, minVer = "0") {
+  if (!isFALSE(try(packageVersion(p) < minVer, silent = TRUE) )) {
+    repo <- c("predictiveecology.r-universe.dev", getOption("repos"))
+    install.packages(p, repos = repo)
+  }
 }
-devtools::install_github("PredictiveEcology/Require", ref = "3b239d6d4d18fe39dfa40a730df5094e74c086f8")
+getOrUpdatePkg("remotes")
+remotes::install_github("PredictiveEcology/Require", ref = "a2c60495228e3a73fa513435290e84854ca51907", upgrade = FALSE)
+getOrUpdatePkg("SpaDES.project", "0.0.8.9040")
+install.packages("SpaDES.core")
 ```
 \
-After loading `Require`, we install and/or load `SpaDES`.\
-\
-
-```r
-Require::Require("SpaDES")
-```
 
 ### 3. Creating a New Module  
 
@@ -202,10 +199,12 @@ parameter can take if e.g. numeric and the description of the parameter. This is
 `defineParameter()` and the template provides several potential parameters of interest for the module 
 developer. These predefined parameters are generally preceded by `.`, but are not required to be used 
 nor removed from the module if not used. Module developers are also expected to add their own parameters 
-of interest which do not have to be preceded by `.`.\
+of interest which do not have to be preceded by `.`. It is necessary to have at least one parameter 
+declared in this session, even if it is not used. We suggest therefore, that the predefined parameters 
+are not removed.\
 
-*Example: * in our example case, we will use as parameters one pre-defined example provided 
-by the template, and we will add one parameter ourselves: `.plotInitialTime` and `areaName`. 
+*Example: * in our example case, we will use as parameters two pre-defined example provided 
+by the template, and we will add one parameter ourselves: `.plotInitialTime`, `.plotInterval`, and `areaName`. 
 These will mainly be used for the plotting event and saving in this simple case.\
 \
 - **inputObjects**: input objects are the objects expected to be present for the module to run. These 
@@ -228,11 +227,10 @@ in  latlong system (two columns, `lat` and `long`, indicating latitude and longi
 we should also provide object name, object class and description. Failing to provide the `outputObjects` 
 will result in the simulation not returning these at the end.\
 
-*Example:* in our example, we will create three outputs. The first one, is named `abundaRas`, which is 
+*Example:* in our example, we will create two outputs. The first one, is named `abundaRas`, which is 
 a raster object of spatially explicit abundance data for a given year, compatible with `terra` (i.e., 
 `SpatRaster` object). The second one, is named `allAbundRas`, which is a raster stack of all 
-`abundaRas`. The third one is `modAbund`, a fitted model (of the `lm` class) of abundance through time. 
-Outputting a model object could, for example, allow for posterior forecasts.\
+`abundaRas`.\
 \
 Once the functional metadata has been updated for our example module `speciesAbundance`, it should 
 look similar to this (note that the parameters not used were removed just to improve clarity):\
@@ -247,6 +245,12 @@ look similar to this (note that the parameters not used were removed just to imp
                     max = end(sim),
                     desc = paste0("Describes the simulation time at which the first plot event",
                            "should occur.")),
+        defineParameter(paramName = ".plotInterval", 
+                        paramClass = "numeric", 
+                        value = 5, 
+                        min = NA, 
+                        max = NA,
+                        desc = "Describes the simulation time interval between plot events."),
       defineParameter(paramName = "areaName", 
                       paramClass = "character", 
                       value = "Riparian_Woodland_Reserve", 
@@ -256,7 +260,7 @@ look similar to this (note that the parameters not used were removed just to imp
   ),
   inputObjects = bindrows(
     expectsInput(objectName = "abund", 
-                 objectClass = NA, 
+                 objectClass = "data.frame", 
                  desc = paste0("data frame with the following columns: `counts` (abundance in a",
                                "numeric form), `years` (year of the data collection in numeric",
                                "form) and coordinates in  latlong system (two columns, `lat` and",
@@ -269,10 +273,7 @@ look similar to this (note that the parameters not used were removed just to imp
                   desc = "A raster object of spatially explicit abundance data for a given year"),
     createsOutput(objectName = "allAbundaRas", 
                   objectClass = "SpatRaster",
-                  desc = "a raster stack of all `abundaRas`"),  
-    createsOutput(objectName = "modAbund", 
-                  objectClass = "lm", 
-                  desc = paste0("A fitted model (of the `lm` class) of abundance through time"))
+                  desc = "a raster stack of all `abundaRas`")
   )
 ```
 
@@ -368,9 +369,6 @@ Followed by this, we will `plot` both the original data from the first year up t
 for the plot title. This plotting function will be dependent on the parameter `.plotInitialTime`, 
 which will used to schedule the start of plotting events.\
 \
-Finally, at the last year of the simulation, we will have an event named `abundanceThroughTime`, which 
-will build a simple linear model to identify any trends in abundance though time.\
-\
 Our events will (temporarily) have the following format:\
 \
 
@@ -392,13 +390,10 @@ doEvent.speciesAbundance = function(sim, eventTime, eventType) {
                "lat" %in% names(abund),
                "long" %in% names(abund)))
         stop("Please revise the column names in the abundance data")
-      
-      lastYearOfData <- max(as.numeric(sim$abund[, c("time")]))
-
+  
       # schedule future event(s)
       sim <- scheduleEvent(sim, time(sim), "speciesAbundance", "tableToRasters")
       sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "speciesAbundance", "plot")
-      sim <- scheduleEvent(sim, lastYearOfData, "speciesAbundance", "abundanceThroughTime")
     },
     tableToRasters = {
       # ! ----- EDIT BELOW ----- ! #
@@ -416,19 +411,6 @@ doEvent.speciesAbundance = function(sim, eventTime, eventType) {
 
       # schedule future event(s)
       sim <- scheduleEvent(sim, time(sim) + 1, "speciesAbundance", "plot")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
-    abundanceThroughTime = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-
-      # e.g., call your custom functions/methods here
-      # you can define your own methods below this `doEvent` function
-
-      # schedule future event(s)
-      # No need to schedule further events as this one happens at the end of the 
-      # module's data
 
       # ! ----- STOP EDITING ----- ! #
     },
@@ -452,16 +434,9 @@ the GIS information provided on the table;\
 \
 **plot:**\
 \
-(3) plot the original data from the first year up to the current year (histogram with distribution);\
+(3) plot the newly created raster (`abundaRas`), using the parameter `areaName` and year for title.\
 \
-(4) plot the newly created raster (`abundaRas`), using the parameter `areaName` and year for title.\
-\
-(5) save the raster stack to the `outputs` folder.\
-\
-**abundanceThroughTime:**\
-\
-(6) build a simple linear model using the abundance data (`abund`) to identify any trends in 
-abundance though time.\
+(4) save the raster stack to the `outputs` folder.\
 \
 Each one of these numbered tasks will be converted into a function. At this point, there are two 
 options: (1) keep all functions in the module's file as the template suggests (see the functions 
@@ -474,7 +449,7 @@ organization, easier to debug and easier for others to read through the module.\
 #### 4.5. Event functions\
 \
 <span style="background-color: #FFFF00">**IMPORTANT: **</span> Avoid using the same names 
-for functions and events. It might get confusing to debug and might in some instances fail.\
+for functions and events. It might get confusing to debug.\
 \
 We will now create all functions for the module, except for function (4), which we will use a
 pre-existing function from the package `terra`. We will opt, due to the module's simplicity,
@@ -513,34 +488,14 @@ return(allAbundanceRasters)
 \
 Next, we will move to the event `plot`:\
 \
-(3) plot the original data from the first year up to the current year (histogram with distribution):`plotAbundance(abundanceData, yearsToPlot)`\
-\
-
-```r
-plotAbundance <- function(abundanceData, yearsToPlot){
-  dataplot <- abundanceData[time %in% yearsToPlot,]
-  abundData <- Copy(dataplot)
-  abundData[, time := as.factor(time)]
-  abundData[, averageYear := mean(abundance), by = "time"]
-  pa <- ggplot(data = abundData, aes(x = abundance, group=time, color=time, fill = time)) +
-    geom_histogram(binwidth=5) +
-    facet_grid(time ~ .) +
-    geom_vline(data = unique(abundData[, c("time", "averageYear")]),
-               aes(xintercept = averageYear),
-               linetype="dashed", color = "black") +
-    theme(legend.position = "none")
-  return(pa)
-}
-```
-\
-(4) plot the newly created raster (`abundaRas`), using the parameter `areaName` and year for title. This function is not going to be built in the module. It is, instead, a function from the package `terra`. It is here written only to show how we will use it in the `plot` event: `plot(x, main)`\
+(3) plot the newly created raster (`abundaRas`), using the parameter `areaName` and year for title. This function is not going to be built in the module. It is, instead, a function from the package `terra`. It is here written only to show how we will use it in the `plot` event: `plot(x, main)`\
 \
 
 ```r
 plot(ras, main = paste0(P(sim)$areaName,": ", time(sim)))
 ```
 \
-(5) save the rasters (`allAbundaRas`) to the outputs folder at the last year: `saveAbundRasters(allAbundanceRasters, savingName, savingFolder)`\
+(4) save the rasters (`allAbundaRas`) to the outputs folder at the last year: `saveAbundRasters(allAbundanceRasters, savingName, savingFolder)`\
 \
 
 ```r
@@ -554,19 +509,6 @@ saveAbundRasters <- function(allAbundanceRasters, savingName, savingFolder){
 }
 ```
 \
-Lastly, we build the last function for the `abundanceThroughTime` event:\
-\
-(6) build a simple linear model using the abundance data (`abund`) to identify any trends in 
-abundance though time: `modelAbundTime(abundanceData)`\
-\
-
-```r
-modelAbundTime <- function(abundanceData){
-  modAbund <- lm(formula = abundance ~ time, data = abundanceData)
-  summary(modAbund)
-  return(modAbund)
-}
-```
 
 Now that we have all functions written, we add them to the `speciesAbundance.R` module file. 
 The functions part of the file should then look like this, after replacing the example functions 
@@ -591,21 +533,6 @@ appendRaster <- function(allAbundanceRasters, newRaster){
   return(allAbundanceRasters)
 }
 
-plotAbundance <- function(abundanceData, yearsToPlot){
-  dataplot <- abundanceData[time %in% yearsToPlot,]
-  abundData <- Copy(dataplot)
-  abundData[, time := as.factor(time)]
-  abundData[, averageYear := mean(abundance), by = "time"]
-  pa <- ggplot(data = abundData, aes(x = abundance, group=time, color=time, fill = time)) +
-    geom_histogram(binwidth=5) +
-    facet_grid(time ~ .) +
-    geom_vline(data = unique(abundData[, c("time", "averageYear")]),
-               aes(xintercept = averageYear),
-               linetype="dashed", color = "black") +
-    theme(legend.position = "none")
-  return(pa)
-}
-
 saveAbundRasters <- function(allAbundanceRasters, savingName, savingFolder){
   terra::writeRaster(x = allAbundanceRasters,
                      filetype = "GTiff",
@@ -613,12 +540,6 @@ saveAbundRasters <- function(allAbundanceRasters, savingName, savingFolder){
                      overwrite = TRUE)
   message(paste0("All rasters saved to: \n", 
                  file.path(savingFolder, paste0(savingName, ".tif"))))
-}
-
-modelAbundTime <- function(abundanceData){
-  modAbund <- lm(formula = abundance ~ time, data = abundanceData)
-  summary(modAbund)
-  return(modAbund)
 }
 ```
 
@@ -646,7 +567,7 @@ defineModule(sim, list(
                                 email = "tati.micheletti@gmail.com", comment = NULL)), 
                       class = "person"),
   childModules = character(0),
-  version = list(speciesAbundance = "0.0.0.9000"),
+  version = list(speciesAbundance = "1.0.0"),
   timeframe = as.POSIXlt(c(2013, 2022)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -655,25 +576,26 @@ defineModule(sim, list(
   parameters = bindrows(
     defineParameter(".plotInitialTime", "numeric", start(sim), start(sim), end(sim),
                     "Describes the simulation time at which the first plot event should occur."),
+    defineParameter(".plotInterval", "numeric", 1, NA, NA,
+                    "Describes the simulation time interval between plot events."),
     defineParameter("areaName", "character", "Riparian_Woodland_Reserve", NA, NA,
                     "Name for the study area used")
   ),
   inputObjects = bindrows(
     expectsInput(objectName = "abund", 
-                 objectClass = NA, 
+                 objectClass = "data.frame", 
                  desc = paste0("data frame with the following columns: `counts` (abundance in a",
                                "numeric form), `years` (year of the data collection in numeric",
                                "form) and coordinates in  latlong system (two columns, `lat` and",
-                               "`long`, indicating latitude and longitude, respectively)"), 
-                 sourceURL = "https://zenodo.org/records/10885997/files/abundanceData.csv")
+                               "`long`, indicating latitude and longitude, respectively).",
+                               "In this example, we use the data v.2.0.0"),
+                 sourceURL = "https://zenodo.org/records/10877463/files/abundanceData.csv")
   ),
   outputObjects = bindrows(
     createsOutput(objectName = "abundaRas", objectClass = "SpatRaster", 
                   desc = "A raster object of spatially explicit abundance data for a given year"),
     createsOutput(objectName = "allAbundaRas", objectClass = "SpatRaster",
-                  desc = "a raster stack of all `abundaRas`"),  
-    createsOutput(objectName = "modAbund", objectClass = "lm", 
-                  desc = paste0("A fitted model (of the `lm` class) of abundance through time"))
+                  desc = "a raster stack of all `abundaRas`")
   )
 ))
 
@@ -698,12 +620,9 @@ doEvent.speciesAbundance = function(sim, eventTime, eventType) {
                "long" %in% names(sim$abund)))
         stop("Please revise the column names in the abundance data")
       
-      lastYearOfData <- max(as.numeric(sim$abund[, years]))
-      
       # schedule future event(s)
       sim <- scheduleEvent(sim, time(sim), "speciesAbundance", "tableToRasters")
       sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "speciesAbundance", "plot")
-      sim <- scheduleEvent(sim, lastYearOfData, "speciesAbundance", "abundanceThroughTime")
     },
     tableToRasters = {
       # ! ----- EDIT BELOW ----- ! #
@@ -725,28 +644,17 @@ doEvent.speciesAbundance = function(sim, eventTime, eventType) {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
       terra::plot(sim$abundaRas, main = paste0(P(sim)$areaName, ": ", time(sim)))
-      plotAbundance(abundanceData = sim$abund, yearsToPlot = start(sim):time(sim))
-      
+
       if (time(sim) == max(as.numeric(sim$abund[, years]))){
         saveAbundRasters(allAbundanceRasters = sim$allAbundaRas, 
                          savingName = P(sim)$areaName, 
                          savingFolder = Paths$output)
       }
-      # schedule future event(s)
-      if (time(sim) < max(as.numeric(sim$abund[, years])))
-        sim <- scheduleEvent(sim, time(sim) + 1, "speciesAbundance", "plot")
-      
-      # ! ----- STOP EDITING ----- ! #
-    },
-    abundanceThroughTime = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-      
-      sim$modAbund <- modelAbundTime(abundanceData = sim$abund)
       
       # schedule future event(s)
-      # No need to schedule further events as this one happens at the end of the 
-      # module's data
+      if ((time(sim) + P(sim)$.plotInterval) < max(as.numeric(sim$abund[, years])))
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, 
+                             "speciesAbundance", "plot")
       
       # ! ----- STOP EDITING ----- ! #
     },
@@ -755,6 +663,7 @@ doEvent.speciesAbundance = function(sim, eventTime, eventType) {
   )
   return(invisible(sim))
 }
+
 ## event functions
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
@@ -776,38 +685,15 @@ appendRaster <- function(allAbundanceRasters, newRaster){
   return(allAbundanceRasters)
 }
 
-plotAbundance <- function(abundanceData, yearsToPlot){
-  Sys.sleep(2) # To ensure we will see the results from the previous plot
-  dataplot <- abundanceData[years %in% yearsToPlot,]
-  abundData <- Copy(dataplot)
-  abundData[, years := as.factor(years)]
-  abundData[, averageYear := mean(abundance), by = "years"]
-  pa <- ggplot(data = abundData, aes(x = abundance, group=years, color=years, fill = years)) +
-    geom_histogram(binwidth=5) +
-    facet_grid(years ~ .) +
-    geom_vline(data = unique(abundData[, c("years", "averageYear")]),
-               aes(xintercept = averageYear),
-               linetype="dashed", color = "black") +
-    theme(legend.position = "none")
-  print(pa)
-  Sys.sleep(2) # To ensure we will see the results from the previous plot
-  return(pa)
-}
-
 saveAbundRasters <- function(allAbundanceRasters, savingName, savingFolder){
   terra::writeRaster(x = allAbundanceRasters,
                      filetype = "GTiff",
-                     filename = file.path(savingFolder, paste0(savingName, ".tif")), 
+                     filename = file.path(savingFolder, paste0(savingName, "_abundance.tif")), 
                      overwrite = TRUE)
   message(paste0("All rasters saved to: \n", 
                  file.path(savingFolder, paste0(savingName, ".tif"))))
 }
 
-modelAbundTime <- function(abundanceData){
-  modAbund <- lm(formula = abundance ~ years, data = abundanceData)
-  summary(modAbund)
-  return(modAbund)
-}
 
 .inputObjects <- function(sim) {
   # Any code written here will be run during the simInit for the purpose of creating
@@ -830,7 +716,7 @@ modelAbundTime <- function(abundanceData){
   
   # ! ----- EDIT BELOW ----- ! #
   if (!suppliedElsewhere(object = "abund", sim = sim)) {
-    sim$abund <- prepInputs(url = extractURL("abund"),
+    sim$abund <- reproducible::prepInputs(url = extractURL("abund"),
                             targetFile = "abundanceData.csv",
                             destinationPath = dPath,
                             fun = "read.csv",
@@ -860,14 +746,6 @@ allow for your project to be tested, run and improved by others.\
 Here we provide enough information to set up a project with our example in mind. More detailed guides 
 on [using git and GitHub](https://spades-project.predictiveecology.org/articles/iii-using-git-github.html), [installing dependencies, R and RStudio](https://spades-project.predictiveecology.org/articles/iv-Installing-R.html), finding [available SpaDES modules](https://spades-project.predictiveecology.org/articles/v-finding-other-modules.html), and 
 setting up a [`SpaDES project`](https://spades-project.predictiveecology.org/articles/i-getting-started.html) can be found in the [vignettes Session](https://spades-project.predictiveecology.org/#getting-started) of the Predictive Ecology website.\
-\
-First, we should install the package. As `SpaDES.project` is almost on its way to CRAN, we will install it from GitHub (branch `transitions`, commit `"e32abe20d89f97d03996b4335655ad000dbab89b"`, which is the one used to generate this tutorial).\
-After installing `SpaDES.project`, we should restart our session.\
-\
-
-```r
-devtools::install_github("PredictiveEcology/SpaDES.project", ref = "e32abe20d89f97d03996b4335655ad000dbab89b")
-```
 \
 The main function in the `SpaDES.project` package is called `setupProject()`. The primary five objectives of this function are:\
 \
@@ -929,12 +807,12 @@ snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
 \
 **OPTION 2.** *Cloud-based module repository*: The first option is **strongly suggested**. Once the module is ready, the user may uploads it to GitHub and uses the web address to indicate in the project function where this module can be found. This is the preferred option, as it grants other users access to the modules and increases reproducibility. In this case, the user will have to setup an account in [GitHub](https://github.com/), create a repository with the name of the module (i.e., `speciesAbundance`), and push the module we created to it. Please note that the repository should contain all files and folder structure as these were in the original module's folder, not the folder containing these (Figure 2):\
 \
-![Module organization when hosted in GitHub.](C:\Users\Tati\Documents\GitHub\EFI_webinar\github.png)
+![Module organization when hosted in GitHub.](figures/github.PNG)
 \
 \
 *Note on using git submodules:* For users who wish to have their projects uploaded to GitHub, but maintain modularity (i.e., keep each module in its own repository to inherit module's updates), there is an experimental argument in `setupProject()` that allows the modules to be setup as `gitsubmodules`. This argument is `useGit = "sub"` and will work if the project (i.e., `integratingSpaDESmodules`) is setup as a git repository. This can be done manually by the user, or interactively from R. The function guides the user on the steps needed, although basic knowledge on how `git` works is required.\
 \
-For those who choose OPTION 2, `setupProject()` should look similar to this code (i.e., replacing the GitHub user). For now, however, we will use `OPTION 1` to keep working with the module just created, as you likely did not have the chance to setup the GitHub repository (which can also be done from within setupProject function!). So please, don't run the `OPTION 2` code.:\
+For those who choose OPTION 2, `setupProject()` should look similar to this code (i.e., replacing the GitHub user). For now, however, we will use `OPTION 1` to keep working with the module just created, as you likely did not have the chance to setup the GitHub repository (which can also be done from within `setupProject()`!). So please, don't run the `OPTION 2` code.:\
 \
 
 ```r
@@ -957,8 +835,10 @@ To check it, just call it as an object in a list. This is the last year's abunda
 
 ```r
 snippsim$abundaRas
-terra::plot(snippsim$abundaRas)
+terra::plot(snippsim$abundaRas, main = "Abundance 2022")
 ```
+\
+![Abundance raster for 2022](figures/abundRaster_HO.png)
 \
 The next object of interest is the `allAbundaRas`. This is a raster stack of `abundaRas` for all years:\
 \
@@ -968,47 +848,7 @@ snippsim$allAbundaRas
 terra::plot(snippsim$allAbundaRas)
 ```
 \
-At last, we will look at the model created and check if abundance is changing through time:\
-\
-
-```r
-snippsim$modAbund
-summary(snippsim$modAbund)
-```
-\
-Apparently, abundance is changing through time. It seems to be significantly decreasing:\
-\
-
-```r
-> snippsim$modAbund
-
-Call:
-lm(formula = abundance ~ years, data = abundanceData)
-
-Coefficients:
-(Intercept)        years  
-   2621.873       -1.294  
-
-> summary(snippsim$modAbund)
-
-Call:
-lm(formula = abundance ~ years, data = abundanceData)
-
-Residuals:
-     Min       1Q   Median       3Q      Max 
--16.5667  -0.6839   0.1988   0.7873  13.4333 
-
-Coefficients:
-              Estimate Std. Error t value Pr(>|t|)    
-(Intercept)  2.622e+03  5.268e+00   497.7   <2e-16 ***
-years       -1.294e+00  2.611e-03  -495.7   <2e-16 ***
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-Residual standard error: 2.348 on 98008 degrees of freedom
-Multiple R-squared:  0.7149,	Adjusted R-squared:  0.7149 
-F-statistic: 2.457e+05 on 1 and 98008 DF,  p-value: < 2.2e-16
-```
+![Abundance rasters for 2013 to 2022](figures/allAbundRas_HO.png)
 \
 The first thing we will change is the starting date of our model. We will start our project in 
 2018 instead of 2013. For that, we will change the `time` parameter and re-run our module. 
@@ -1088,7 +928,7 @@ snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
 \
 In our example, there is no direct integration between the `speciesAbundance` and the `temperature` modules. These become integrated with the third module, `speciesAbundTempLM`, which uses inputs from both of these and creates a model that can be forecasted. Interesting to note on the new module is that the use of the option of saving functions in the `R/` folder. These are automatically parsed at the beginning of the simulation call (`simInitAndSpades()`). Moreover, we can see that as the `temperature` module has a longer time series of data, the simulation doesn't stop at the end of the time series from `speciesAbundace` module, but keeps going until the defined `end time`. This is due to our preemptive conditional scheduling of the events in the `speciesAbundance` module.\
 \
-Now we will add a third module, which aims at fitting a linear model (LM) to help understand and forecast the relationship between species abundance and temperature. This module was carefully created, taking into account the objects created by `speciesAbundance` and `temperature`, more specifically, `abundaRas` and `tempRas`, respectively. These objects outputted by `speciesAbundance` and `temperature` are inputs in the `speciesAbundTempLM` module. The module was planned to identify the point in time when the data from the `speciesAbundance` module is no longer available, and forecast from that point on the abundance based on the provided temperature. The time for fitting of the LM is scheduled by the user, using a default of 2022, when all the data from the `speciesAbundance` is available. Until then, the module only stores the provided data in a `data.table`. The predictions are plotted and saved in the `outputs` folder.\
+Now we will add a third module, which aims at fitting a linear model (LM) to help understand and forecast the relationship between species abundance and temperature. This module was carefully created, taking into account the objects created by `speciesAbundance` and `temperature`, more specifically, `abundaRas` and `tempRas`, respectively. These objects outputted by `speciesAbundance` and `temperature` are inputs in the `speciesAbundTempLM` module. The module was planned to identify the point in time when the data from the `speciesAbundance` module is no longer available, and forecast from that point on the abundance based on the provided temperature. The time for fitting of the LM is automatically detected, when all the data from the `speciesAbundance` is available. Until then, the module only stores the provided data in a `data.table`. The predictions are plotted and saved in the `outputs` folder.\
 \
 
 ```r
@@ -1112,10 +952,31 @@ out <- SpaDES.project::setupProject(
 
 snippsim <- do.call(SpaDES.core::simInitAndSpades, out)
 ```
-
-If you inspect the last module added, you may notice that we added the priority of some of the events to happen in `speciesAbundTempLM`. These priorities facilitate the order of events to happen on the same year across modules. While with the previous two modules the order of events across modules was irrelevant, as the modules had no direct dependencies, now it becomes important as the model building and forecasts should only happen after the last year of data has been processed.\
 \
-You may also note that `abundanceForecasting` intentionally depicts the full range of actions done in the event, not wrapped in a function. Although we recommend all actions to be wrapped in functions to avoid cluttering the module, this is an alternative way to write the module and it is up to the module developer to decide on how to do it.\
+Now we can see some results. Accessing the forecasted abundances and the difference raster is also possible. This is done by calling the object name from the results list.
+
+```r
+terra::plot(rast(snippsim$forecasts))
+```
+\
+![Abundance forecasts for 2023 to 2032](figures/forecastedAbundance.png)
+\
+This is done by calling the object name from the results list.
+
+```r
+terra::plot(snippsim$forecastedDifferences, col = c("#49006A", "#7A0177", "#AE017E", 
+                                                   "#DD3497", "#F768A1", "#FA9FB5", 
+                                                   "#FCC5C0", "#FDE0DD", "#FFF7F3"), 
+            main = "Difference in abundance between 2022 and 2032")
+```
+\
+![Abundance forecasts for 2023 to 2032](figures/differencePlot.png)
+\
+If you explore the last added module, you may notice that the event `abundanceForecasting` intentionally depicts the full range of actions done in the event, not wrapped in a function. Although we recommend all actions to be wrapped in functions to avoid cluttering the module, this is an alternative way to write the module and it is up to the module developer to decide on how to do it.\
+\
+This is the end of the tutorial. I hope you can start working on your own SpaDES modules. 
+If something is failing, below are some common mistakes when setting up modules. I also provide 
+a list of further resources to improve even more your SpaDES skills!
 
 ## Most common mistakes\
 \
@@ -1144,8 +1005,6 @@ The most common mistakes a user makes when starting working with SpaDES are:\
 
 - **SpaDES user group:** https://groups.google.com/g/spades-users\
 
-- **Zulip Group:** https://for-cast.zulipchat.com\
-
 - **Live SpaDES best practices (live document):** https://docs.google.com/document/d/19QmQ5sErqbXF_mgv3M50SnRQJBciFvCV_LuJDsj0qKA/edit?usp=sharing\
 
 - **SpaDES.core vignettes:** https://spades-core.predictiveecology.org/articles/i-introduction.html\
@@ -1163,4 +1022,4 @@ The most common mistakes a user makes when starting working with SpaDES are:\
 \
 \
 \
-![](C:\Users\Tati\Documents\GitHub\EFI_webinar\spades_logo.png)
+![](figures/SpaDES.jpg)
