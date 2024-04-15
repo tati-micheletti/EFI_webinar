@@ -40,8 +40,7 @@ getOrUpdatePkg("SpaDES.project", "0.0.8.9040")
 Setup <- SpaDES.project::setupProject(
   
   paths = list(projectPath = "integratingSpaDESmodules",
-               modulePath = "SpaDES_Modules",
-               outputPath = "outputs"),
+               modulePath = "SpaDES_Modules"),
   
   modules = c("tati-micheletti/speciesAbundance@main",
               "tati-micheletti/temperature@main",
