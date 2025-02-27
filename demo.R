@@ -27,11 +27,8 @@ getOrUpdatePkg <- function(p, minVer = "0") {
 }
 
 getOrUpdatePkg("remotes")
-
-remotes::install_github("PredictiveEcology/Require", ref = "a2c60495228e3a73fa513435290e84854ca51907", upgrade = FALSE)
-
-getOrUpdatePkg("SpaDES.project", "0.0.8.9040")
-
+getOrUpdatePkg("Require", "1.0.1")
+getOrUpdatePkg("SpaDES.project", "0.1.1.9019")
 
 
 
@@ -48,9 +45,8 @@ Setup <- SpaDES.project::setupProject(
   times = list(start = 2013,
                end = 2032),
   
-  Restart = TRUE
+  Restart = TRUE # The second time you run it, make sure to set to FALSE if RStudio attemps to open the project again
 )
-
 
 
 ##################### PART III: Run SpaDES
